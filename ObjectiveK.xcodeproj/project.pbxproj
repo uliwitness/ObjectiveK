@@ -23,8 +23,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		55452B9819FE1DFF00A87C59 /* ObjectiveK */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ObjectiveK; sourceTree = BUILT_PRODUCTS_DIR; };
+		55452B9819FE1DFF00A87C59 /* objk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = objk; sourceTree = BUILT_PRODUCTS_DIR; };
 		55452B9B19FE1DFF00A87C59 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		55452BA219FE238C00A87C59 /* example.ok */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = example.ok; path = examples/example.ok; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,7 +50,7 @@
 		55452B9919FE1DFF00A87C59 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				55452B9819FE1DFF00A87C59 /* ObjectiveK */,
+				55452B9819FE1DFF00A87C59 /* objk */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -58,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				55452B9B19FE1DFF00A87C59 /* main.c */,
+				55452BA219FE238C00A87C59 /* example.ok */,
 			);
 			path = ObjectiveK;
 			sourceTree = "<group>";
@@ -79,7 +81,7 @@
 			);
 			name = ObjectiveK;
 			productName = ObjectiveK;
-			productReference = 55452B9819FE1DFF00A87C59 /* ObjectiveK */;
+			productReference = 55452B9819FE1DFF00A87C59 /* objk */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -202,14 +204,14 @@
 		55452BA019FE1DFF00A87C59 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = objk;
 			};
 			name = Debug;
 		};
 		55452BA119FE1DFF00A87C59 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = objk;
 			};
 			name = Release;
 		};

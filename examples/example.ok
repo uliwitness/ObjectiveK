@@ -1,0 +1,16 @@
+//
+//  example.ok
+//  ObjectiveK
+//
+//  Created by Uli Kusterer on 2014-10-27.
+//  Copyright (c) 2014 Uli Kusterer. All rights reserved.
+//
+
+class program
+    main function main()
+        printf( "Hello World!\n")
+        showtext( "And Greetings, Programs!\n")
+
+extension textShowing : program
+    function showtext(string message)
+        printf( "%s", message )
