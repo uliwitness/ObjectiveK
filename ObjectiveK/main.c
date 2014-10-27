@@ -29,13 +29,14 @@ struct OKToken
 {
     enum OKTokenMode    tokenType;
     int                 indentLevel;
+    int                 lineNumber;
     struct OKToken*     nextToken;
     size_t              stringLen;
     char                string[0];
 };
 
 
-struct OKToken *   OKMallocToken( struct OKToken ** firstToken, struct OKToken ** prevToken, enum OKTokenMode tokenMode, int indentLevel, const char* identifierStr, size_t identifierLen )
+struct OKToken *   OKMallocToken( struct OKToken ** firstToken, struct OKToken ** prevToken, enum OKTokenMode tokenMode, int indentLevel, int lineNumber, const char* identifierStr, size_t identifierLen )
 {
     if( tokenMode == OKTokenMode_Whitespace )
         return NULL;
@@ -45,6 +46,7 @@ struct OKToken *   OKMallocToken( struct OKToken ** firstToken, struct OKToken *
     struct OKToken  *   theToken = calloc( 1, sizeof(struct OKToken) +identifierLen +1 );
     theToken->tokenType = tokenMode;
     theToken->indentLevel = indentLevel;
+    theToken->lineNumber = lineNumber;
     theToken->stringLen = identifierLen;
     memmove( theToken->string, identifierStr, identifierLen );
     
@@ -146,7 +148,28 @@ void    OKGoNextTokenSkippingComments( struct OKToken ** inToken )
 }
 
 
-void    OKParseOneClassLevelConstruct( struct OKToken ** inToken )
+void    OKPrintInitCode( const char* className, const char* varName )
+{
+    printf("\t(%s)->super->isa->init();\n", varName);
+}
+
+
+void    OKPrintDeallocCode( const char* className, const char* varName )
+{
+    printf("\t(%s)->super->isa->dealloc();\n", varName);
+}
+
+
+void    OKParseOneFunctionBody( struct OKToken ** inToken, const char* fileName, const char* className )
+{
+    while( (*inToken) && (*inToken)->indentLevel == 8 )
+    {
+        OKGoNextTokenSkippingComments(inToken); // +++ Actually parse function body.
+    }
+}
+
+
+void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fileName, const char* className )
 {
     OKSkipComments( inToken );
     
@@ -163,12 +186,26 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken )
             const char* funcName = OKGetIdentifier(*inToken);
             if( !funcName )
             {
-                printf("error: Main function needs a name.\n");
+                printf("error:%d: Main function needs a name.\n", (*inToken)->lineNumber);
                 *inToken = NULL;
                 return;
             }
-            printf( "int    main( int argc, const char** argv )\n{\n\treturn %s( argc, argv );\n}\n", funcName );
-            printf( "int    %s(", funcName);
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            printf( "int    main( int argc, const char** argv )\n" );
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            printf( "{\n" );
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            printf( "\tstruct %s this = {0};\n", className );
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            OKPrintInitCode( className, "&this" );
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            printf("\tint result = %s___%s( &this, argc, argv );\n", className, funcName );
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            OKPrintDeallocCode( className, "&this" );
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            printf("\treturn result;\n}\n" );
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            printf( "int    %s___%s( %s* this", className, funcName, className);
             OKGoNextTokenSkippingComments( inToken );
             while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
             {
@@ -184,13 +221,17 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken )
                 if( !OKIsOperator( *inToken, ",") && !OKIsOperator( *inToken, ")") )
                 {
                     paramName = OKGetIdentifier(*inToken);
-                    printf( "%s %s", typeName, paramName );
+                    printf( ", %s %s", typeName, paramName );
                 }
                 else
-                    printf( "%s", typeName );
+                    printf( ", %s", typeName );
             }
-            printf( ")\n{\n");
-            
+            printf( " )\n{\n");
+            if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
+            {
+                OKGoNextTokenSkippingComments(inToken);
+            }
+            OKParseOneFunctionBody( inToken, fileName, className );
             printf( "}\n");
             
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
@@ -199,15 +240,56 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken )
             }
         }
     }
+    else if( OKIsIdentifier( *inToken, "function" ) )
+    {
+        OKGoNextTokenSkippingComments( inToken );
+        const char* funcName = OKGetIdentifier(*inToken);
+        if( !funcName )
+        {
+            printf("error:%d: Function needs a name.\n", (*inToken)->lineNumber);
+            *inToken = NULL;
+            return;
+        }
+        printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+        printf( "int    %s___%s( %s* this", className, funcName, className);
+        OKGoNextTokenSkippingComments( inToken );
+        while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
+        {
+            OKGoNextTokenSkippingComments( inToken );
+            if( OKIsOperator( *inToken, ")" ) )
+            {
+                OKGoNextTokenSkippingComments( inToken );
+                break;
+            }
+            const char* typeName = OKGetIdentifier(*inToken);
+            const char* paramName = NULL;
+            OKGoNextTokenSkippingComments( inToken );
+            if( !OKIsOperator( *inToken, ",") && !OKIsOperator( *inToken, ")") )
+            {
+                paramName = OKGetIdentifier(*inToken);
+                printf( ", %s %s", typeName, paramName );
+            }
+            else
+                printf( ", %s", typeName );
+        }
+        printf( " )\n{\n");
+        OKParseOneFunctionBody( inToken, fileName, className );
+        printf( "}\n");
+        
+        if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
+        {
+            OKGoNextTokenSkippingComments(inToken);
+        }
+    }
     else if( *inToken )
     {
-        fprintf(stderr, "error: Unknown class-level construct %s.",(*inToken)->string);
+        fprintf(stderr, "error:%d: Unknown class-level construct %s in class %s.", (*inToken)->lineNumber, (*inToken)->string, className);
         *inToken = NULL;
     }
 }
 
 
-void    OKParseOneTopLevelConstruct( struct OKToken ** inToken )
+void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, const char* fileName )
 {
     OKSkipComments( inToken );
     
@@ -229,30 +311,32 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken )
                 superclassName = OKGetIdentifier(*inToken);
             }
             
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
             printf( "struct %s\n{\n", className );
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
             printf( "\tstruct %s\tsuper;\n", superclassName );
             
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
                 OKGoNextTokenSkippingComments( inToken );
             while( (*inToken) && (*inToken)->indentLevel == 4 )
-                OKParseOneClassLevelConstruct( inToken );
+                OKParseOneClassLevelConstruct( inToken, fileName, className );
             printf( "};\n" );
         }
     }
     else if( *inToken )
     {
-        fprintf(stderr, "error: Unknown top-level construct %s.",(*inToken)->string);
+        fprintf( stderr, "error:%d: Unknown top-level construct %s.", (*inToken)->lineNumber, (*inToken)->string );
         *inToken = NULL;
     }
 }
 
 
-void    OKParseTokenList( struct OKToken * inToken )
+void    OKParseTokenList( struct OKToken * inToken, const char* fileName )
 {
     struct OKToken *    currToken = inToken;
     while( currToken )
     {
-        OKParseOneTopLevelConstruct( &currToken );
+        OKParseOneTopLevelConstruct( &currToken, fileName );
     }
 }
 
@@ -305,6 +389,8 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
     int                 indentLevel = 0;
     char                identifierStr[1024] = {0};
     size_t              identifierLen = 0;
+    int                 lineNumber = 1;
+    
     while( true )
     {
         char    currCh = 0;
@@ -319,16 +405,17 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                     indentLevel += 1;
                 else if( currCh == '\n' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierStr[0] = currCh; identifierStr[1] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, identifierStr, 1 );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, lineNumber, identifierStr, 1 );
+                    lineNumber++;
                     indentLevel = 0;
                     identifierLen = 0;
                     isAtLineStart = true;
                 }
                 else if( currCh == '\r' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
                     identifierLen = 1;
@@ -336,18 +423,18 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( OKIsOperatorChar(currCh) )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 1;
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
                     isAtLineStart = false;
                 }
                 else if( isdigit(currCh) )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_Integer;
                     identifierLen = 1;
                     identifierStr[0] = currCh;
@@ -356,7 +443,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( currCh == '"' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_String;
                     identifierLen = 0;
                     identifierStr[0] = 0;
@@ -364,7 +451,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( currCh != ' ' && currCh != '\t' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_Identifier;
                     identifierLen = 1;
                     identifierStr[0] = currCh;
@@ -396,26 +483,27 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( OKIsOperatorChar(currCh) )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 1;
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
                 }
                 else if( currCh == '"' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_String;
                     identifierLen = 0;
                     identifierStr[0] = 0;
                 }
                 else if( currCh == '\n' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierStr[0] = currCh; identifierStr[1] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, identifierStr, 1 );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, lineNumber, identifierStr, 1 );
+                    lineNumber++;
                     indentLevel = 0;
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
@@ -423,7 +511,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( currCh == '\r' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
                     identifierLen = 1;
@@ -431,7 +519,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_Identifier;
                     identifierLen = 1;
                     identifierStr[0] = currCh;
@@ -452,26 +540,27 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( OKIsOperatorChar(currCh) ) // This catches any excess dots after a float and makes them operator tokens.
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 1;
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
                 }
                 else if( currCh == '"' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_String;
                     identifierLen = 0;
                     identifierStr[0] = 0;
                 }
                 else if( currCh == '\n' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierStr[0] = currCh; identifierStr[1] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, identifierStr, 1 );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, lineNumber, identifierStr, 1 );
+                    lineNumber++;
                     indentLevel = 0;
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
@@ -479,7 +568,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( currCh == '\r' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
                     identifierLen = 1;
@@ -487,7 +576,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_Identifier;
                     identifierLen = 1;
                     identifierStr[0] = currCh;
@@ -498,26 +587,27 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
             case OKTokenMode_Identifier:
                 if( OKIsOperatorChar(currCh) )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 1;
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
                 }
                 else if( currCh == '"' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_String;
                     identifierLen = 0;
                     identifierStr[0] = 0;
                 }
                 else if( currCh == '\n' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierStr[0] = currCh; identifierStr[1] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, identifierStr, 1 );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, lineNumber, identifierStr, 1 );
+                    lineNumber++;
                     indentLevel = 0;
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
@@ -525,7 +615,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( currCh == '\r' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
                     identifierLen = 1;
@@ -533,7 +623,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else if( currCh == ' ' || currCh == '\t' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
                 }
@@ -552,7 +642,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
             case OKTokenMode_String:
                 if( currCh == '"' )
                 {
-                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                     tokenMode = OKTokenMode_Whitespace;
                     identifierLen = 0;
                     identifierStr[0] = 0;
@@ -603,6 +693,10 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                         fprintf(stderr,"error: String constant longer than 1024 characters.\n");
                         return 2;
                     }
+                    if( currCh == '\n' )
+                        lineNumber++;
+                    else if( identifierLen > 0 && identifierStr[identifierLen-1] == '\r' )
+                        lineNumber++;
                     identifierStr[identifierLen++] = currCh;
                     identifierStr[identifierLen] = 0;
                 }
@@ -612,7 +706,8 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 if( currCh == '\n' )
                 {
                     identifierStr[1] = currCh; identifierStr[2] = 0;
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, identifierStr, 2 );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, lineNumber, identifierStr, 2 );
+                    lineNumber++;
                     indentLevel = 0;
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
@@ -620,7 +715,8 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 }
                 else    // \r was followed by something else, generate \r and continue as if it was whitespace:
                 {
-                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, identifierStr, 1 );
+                    OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, lineNumber, identifierStr, 1 );
+                    lineNumber++;
                     indentLevel = 0;
                     identifierLen = 0;
                     tokenMode = OKTokenMode_Whitespace;
@@ -633,32 +729,33 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                         indentLevel += 1;
                     else if( currCh == '\n' )
                     {
-                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                         identifierStr[0] = currCh; identifierStr[1] = 0;
-                        OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, identifierStr, 1 );
+                        OKMallocToken( outTokenList, &prevToken, OKTokenMode_LineBreak, indentLevel, lineNumber, identifierStr, 1 );
+                        lineNumber++;
                         indentLevel = 0;
                         identifierLen = 0;
                         isAtLineStart = true;
                     }
                     else if( currCh == '\r' )
                     {
-                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                         identifierStr[0] = currCh; identifierStr[1] = 0;
                         tokenMode = OKTokenMode_LineBreak;  // Could be Windows \r\n sequence, so don't generate yet.
                     }
                     else if( OKIsOperatorChar(currCh) )
                     {
-                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                         identifierLen = 1;
                         identifierStr[0] = currCh;
                         identifierStr[1] = 0;
-                        OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, identifierStr, identifierLen );
+                        OKMallocToken( outTokenList, &prevToken, OKTokenMode_Operator, indentLevel, lineNumber, identifierStr, identifierLen );
                         identifierLen = 0;
                         tokenMode = OKTokenMode_Whitespace;
                     }
                     else if( isdigit(currCh) )
                     {
-                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                         tokenMode = OKTokenMode_Integer;
                         identifierLen = 1;
                         identifierStr[0] = currCh;
@@ -666,14 +763,14 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                     }
                     else if( currCh == '"' )
                     {
-                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                         tokenMode = OKTokenMode_String;
                         identifierLen = 0;
                         identifierStr[0] = 0;
                     }
                     else
                     {
-                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+                        OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
                         tokenMode = OKTokenMode_Identifier;
                         identifierLen = 1;
                         identifierStr[0] = currCh;
@@ -687,7 +784,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 break;
         }
     }
-    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, identifierStr, identifierLen );
+    OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
     
     return 0;
 }
@@ -713,7 +810,7 @@ int main( int argc, const char * argv[] )
         return result;
     OKPrintTokenList( tokenList );
     
-    OKParseTokenList( tokenList );
+    OKParseTokenList( tokenList, argv[1] );
     
     OKFreeTokenList( tokenList );
     
