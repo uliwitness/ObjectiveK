@@ -207,10 +207,11 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
             printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
             printf( "int    %s___%s( %s* this", className, funcName, className);
             OKGoNextTokenSkippingComments( inToken );
-            while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
+            while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
             {
-                OKGoNextTokenSkippingComments( inToken );
-                if( OKIsOperator( *inToken, ")" ) )
+                if( !OKIsOperator( *inToken, ")") )
+                    OKGoNextTokenSkippingComments( inToken );
+                else
                 {
                     OKGoNextTokenSkippingComments( inToken );
                     break;
@@ -222,6 +223,7 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
                 {
                     paramName = OKGetIdentifier(*inToken);
                     printf( ", %s %s", typeName, paramName );
+                    OKGoNextTokenSkippingComments( inToken );
                 }
                 else
                     printf( ", %s", typeName );
@@ -253,10 +255,11 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
         printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
         printf( "int    %s___%s( %s* this", className, funcName, className);
         OKGoNextTokenSkippingComments( inToken );
-        while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
+        while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
         {
-            OKGoNextTokenSkippingComments( inToken );
-            if( OKIsOperator( *inToken, ")" ) )
+            if( !OKIsOperator( *inToken, ")") )
+                OKGoNextTokenSkippingComments( inToken );
+            else
             {
                 OKGoNextTokenSkippingComments( inToken );
                 break;
@@ -268,6 +271,7 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
             {
                 paramName = OKGetIdentifier(*inToken);
                 printf( ", %s %s", typeName, paramName );
+                OKGoNextTokenSkippingComments( inToken );
             }
             else
                 printf( ", %s", typeName );
@@ -321,6 +325,38 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, const char* file
             while( (*inToken) && (*inToken)->indentLevel == 4 )
                 OKParseOneClassLevelConstruct( inToken, fileName, className );
             printf( "};\n" );
+        }
+    }
+    else if( OKIsIdentifier( *inToken, "extension" ) )
+    {
+        OKGoNextTokenSkippingComments( inToken );
+        const char* className = OKGetIdentifier(*inToken);
+        if( className )
+        {
+            const char*     superclassName = NULL;
+            OKGoNextTokenSkippingComments( inToken );
+            if( !OKIsOperator( *inToken, ":") )  // Have superclass!
+            {
+                fprintf( stderr, "error:%d: Extension %s does not specify the class it extends.", (*inToken)->lineNumber, className );
+                *inToken = NULL;
+                return;
+            }
+            OKGoNextTokenSkippingComments( inToken );
+            superclassName = OKGetIdentifier(*inToken);
+            if( !superclassName )
+            {
+                fprintf( stderr, "error:%d: Extension %s does not specify the class it extends.", (*inToken)->lineNumber, className );
+                *inToken = NULL;
+                return;
+            }
+            OKGoNextTokenSkippingComments( inToken );
+            
+            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
+            printf( "// Extension %s to class %s\n", className, superclassName );
+            if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
+                OKGoNextTokenSkippingComments( inToken );
+            while( (*inToken) && (*inToken)->indentLevel == 4 )
+                OKParseOneClassLevelConstruct( inToken, fileName, superclassName );
         }
     }
     else if( *inToken )

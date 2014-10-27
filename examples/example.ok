@@ -9,7 +9,7 @@
 class program
     main function main()
         printf( "Hello World!\n")
-        showtext( "And Greetings, Programs!\n")
+        showtext( "And Greetings, Programs!\n" )
 
 extension textShowing : program
     function showtext(string message)
