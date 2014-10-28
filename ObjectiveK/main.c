@@ -100,11 +100,11 @@ void    OKPrintToken( struct OKToken * theToken )
     static size_t       indentStrCharCount = sizeof(indentStr) -1;
     char*   indentStart = indentStr +indentStrCharCount -((theToken->indentLevel > indentStrCharCount) ? indentStrCharCount : theToken->indentLevel);
     if( theToken->tokenType == OKTokenMode_LineBreak )
-        printf("%s%d: %s\n",indentStart,theToken->tokenType,(theToken->string[0] == '\n')?"\\n":"\\r");
+        printf("%s%s\n",indentStart,(theToken->string[0] == '\n')?"\\n":"\\r");
     else if( theToken->tokenType == OKTokenMode_String )
-        printf("%s%d: \"%s\"\n",indentStart,theToken->tokenType,theToken->string);
+        printf("%s\"%s\"\n",indentStart,theToken->string);
     else if( theToken->stringLen > 0 )
-        printf("%s%d: %s\n",indentStart,theToken->tokenType,theToken->string);
+        printf("%s%s\n",indentStart,theToken->string);
 }
 
 
@@ -215,7 +215,7 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             fprintf( context->sourceFile, "\treturn result;\n}\n" );
             fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->sourceFile, "int    %s___%s( %s* this", context->className, funcName, context->className);
+            fprintf( context->sourceFile, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
             OKGoNextTokenSkippingComments( inToken );
             while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
             {
@@ -266,7 +266,7 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             return;
         }
         fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-        fprintf( context->sourceFile, "int    %s___%s( %s* this", context->className, funcName, context->className);
+        fprintf( context->sourceFile, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
         OKGoNextTokenSkippingComments( inToken );
         while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
         {
