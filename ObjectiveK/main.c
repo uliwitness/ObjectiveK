@@ -277,6 +277,10 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
                 printf( ", %s", typeName );
         }
         printf( " )\n{\n");
+        if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
+        {
+            OKGoNextTokenSkippingComments(inToken);
+        }
         OKParseOneFunctionBody( inToken, fileName, className );
         printf( "}\n");
         
