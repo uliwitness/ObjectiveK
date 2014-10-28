@@ -11,6 +11,13 @@ Design goals for ObjectiveK
 5. Be as lightweight and portable as C, by sitting on top of C
 
 
+Syntax
+------
+
+This Xcode project generates a command line tool named 'objk' that takes a
+path to a '.ok' source file as its only argument and compiles it into C source code.
+
+
 License
 -------
 

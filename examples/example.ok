@@ -7,7 +7,7 @@
 //
 
 class program
-    main function main()
+    main function startUp()
         printf( "Hello World!\n")
         showtext( "And Greetings, Programs!\n" )
 
