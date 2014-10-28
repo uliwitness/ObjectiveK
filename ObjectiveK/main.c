@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <sys/param.h>
 
 
 enum OKTokenMode
@@ -33,6 +34,15 @@ struct OKToken
     struct OKToken*     nextToken;
     size_t              stringLen;
     char                string[0];
+};
+
+
+struct OKParseContext
+{
+    const char*     fileName;
+    const char*     className;
+    FILE*           headerFile;
+    FILE*           sourceFile;
 };
 
 
@@ -148,19 +158,19 @@ void    OKGoNextTokenSkippingComments( struct OKToken ** inToken )
 }
 
 
-void    OKPrintInitCode( const char* className, const char* varName )
+void    OKPrintInitCode( const char* varName, struct OKParseContext* context )
 {
-    printf("\t(%s)->super->isa->init();\n", varName);
+    fprintf( context->sourceFile, "\t(%s)->super->isa->init();\n", varName );
 }
 
 
-void    OKPrintDeallocCode( const char* className, const char* varName )
+void    OKPrintDeallocCode( const char* varName, struct OKParseContext* context )
 {
-    printf("\t(%s)->super->isa->dealloc();\n", varName);
+    fprintf( context->sourceFile, "\t(%s)->super->isa->dealloc();\n", varName);
 }
 
 
-void    OKParseOneFunctionBody( struct OKToken ** inToken, const char* fileName, const char* className )
+void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext* context )
 {
     while( (*inToken) && (*inToken)->indentLevel == 8 )
     {
@@ -169,7 +179,7 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, const char* fileName,
 }
 
 
-void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fileName, const char* className )
+void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParseContext* context )
 {
     OKSkipComments( inToken );
     
@@ -186,29 +196,30 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
             const char* funcName = OKGetIdentifier(*inToken);
             if( !funcName )
             {
-                printf("error:%d: Main function needs a name.\n", (*inToken)->lineNumber);
+                fprintf( stderr, "error:%d: Main function needs a name.\n", (*inToken)->lineNumber);
                 *inToken = NULL;
                 return;
             }
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf( "int    main( int argc, const char** argv )\n" );
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf( "{\n" );
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf( "\tstruct %s this = {0};\n", className );
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            OKPrintInitCode( className, "&this" );
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf("\tint result = %s___%s( &this, argc, argv );\n", className, funcName );
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            OKPrintDeallocCode( className, "&this" );
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf("\treturn result;\n}\n" );
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf( "int    %s___%s( %s* this", className, funcName, className);
+            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->sourceFile, "int    main( int argc, const char** argv )\n" );
+            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->sourceFile, "{\n" );
+            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->sourceFile, "\tstruct %s this = {0};\n", context->className );
+            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKPrintInitCode( "&this", context );
+            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->sourceFile, "\tint result = %s___%s( &this, argc, argv );\n", context->className, funcName );
+            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKPrintDeallocCode( "&this", context );
+            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->sourceFile, "\treturn result;\n}\n" );
+            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->sourceFile, "int    %s___%s( %s* this", context->className, funcName, context->className);
             OKGoNextTokenSkippingComments( inToken );
-            while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
+            while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
             {
+                OKGoNextTokenSkippingComments( inToken );
                 if( !OKIsOperator( *inToken, ")") )
                     OKGoNextTokenSkippingComments( inToken );
                 else
@@ -222,19 +233,21 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
                 if( !OKIsOperator( *inToken, ",") && !OKIsOperator( *inToken, ")") )
                 {
                     paramName = OKGetIdentifier(*inToken);
-                    printf( ", %s %s", typeName, paramName );
+                    fprintf( context->sourceFile, ", %s %s", typeName, paramName );
                     OKGoNextTokenSkippingComments( inToken );
                 }
                 else
-                    printf( ", %s", typeName );
+                    fprintf( context->sourceFile, ", %s", typeName );
             }
-            printf( " )\n{\n");
+            if( OKIsOperator( *inToken, ")") )
+                OKGoNextTokenSkippingComments( inToken );
+            fprintf( context->sourceFile, " )\n{\n");
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
             {
                 OKGoNextTokenSkippingComments(inToken);
             }
-            OKParseOneFunctionBody( inToken, fileName, className );
-            printf( "}\n");
+            OKParseOneFunctionBody( inToken, context );
+            fprintf( context->sourceFile, "}\n");
             
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
             {
@@ -252,8 +265,8 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
             *inToken = NULL;
             return;
         }
-        printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-        printf( "int    %s___%s( %s* this", className, funcName, className);
+        fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+        fprintf( context->sourceFile, "int    %s___%s( %s* this", context->className, funcName, context->className);
         OKGoNextTokenSkippingComments( inToken );
         while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
         {
@@ -270,19 +283,19 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
             if( !OKIsOperator( *inToken, ",") && !OKIsOperator( *inToken, ")") )
             {
                 paramName = OKGetIdentifier(*inToken);
-                printf( ", %s %s", typeName, paramName );
+                fprintf( context->sourceFile, ", %s %s", typeName, paramName );
                 OKGoNextTokenSkippingComments( inToken );
             }
             else
-                printf( ", %s", typeName );
+                fprintf( context->sourceFile, ", %s", typeName );
         }
-        printf( " )\n{\n");
+        fprintf( context->sourceFile, " )\n{\n");
         if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
         {
             OKGoNextTokenSkippingComments(inToken);
         }
-        OKParseOneFunctionBody( inToken, fileName, className );
-        printf( "}\n");
+        OKParseOneFunctionBody( inToken, context );
+        fprintf( context->sourceFile, "}\n");
         
         if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
         {
@@ -291,13 +304,13 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, const char* fi
     }
     else if( *inToken )
     {
-        fprintf(stderr, "error:%d: Unknown class-level construct %s in class %s.", (*inToken)->lineNumber, (*inToken)->string, className);
+        fprintf(stderr, "error:%d: Unknown class-level construct %s in class %s.", (*inToken)->lineNumber, (*inToken)->string, context->className);
         *inToken = NULL;
     }
 }
 
 
-void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, const char* fileName )
+void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseContext* context )
 {
     OKSkipComments( inToken );
     
@@ -319,16 +332,19 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, const char* file
                 superclassName = OKGetIdentifier(*inToken);
             }
             
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf( "struct %s\n{\n", className );
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf( "\tstruct %s\tsuper;\n", superclassName );
+            fprintf( context->headerFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->headerFile, "struct %s\n{\n", className );
+            fprintf( context->headerFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->headerFile, "\tstruct %s\tsuper;\n", superclassName );
             
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
                 OKGoNextTokenSkippingComments( inToken );
+            context->className = className;
             while( (*inToken) && (*inToken)->indentLevel == 4 )
-                OKParseOneClassLevelConstruct( inToken, fileName, className );
-            printf( "};\n" );
+            {
+                OKParseOneClassLevelConstruct( inToken, context );
+            }
+            fprintf( context->headerFile, "};\n" );
         }
     }
     else if( OKIsIdentifier( *inToken, "extension" ) )
@@ -355,12 +371,15 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, const char* file
             }
             OKGoNextTokenSkippingComments( inToken );
             
-            printf( "#line %d \"%s\"\n", (*inToken)->lineNumber, fileName );
-            printf( "// Extension %s to class %s\n", className, superclassName );
+            fprintf( context->headerFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            fprintf( context->headerFile, "// Extension %s to class %s\n", className, superclassName );
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
                 OKGoNextTokenSkippingComments( inToken );
+            context->className = superclassName;
             while( (*inToken) && (*inToken)->indentLevel == 4 )
-                OKParseOneClassLevelConstruct( inToken, fileName, superclassName );
+            {
+                OKParseOneClassLevelConstruct( inToken, context );
+            }
         }
     }
     else if( *inToken )
@@ -371,12 +390,12 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, const char* file
 }
 
 
-void    OKParseTokenList( struct OKToken * inToken, const char* fileName )
+void    OKParseTokenList( struct OKToken * inToken, struct OKParseContext* context )
 {
     struct OKToken *    currToken = inToken;
     while( currToken )
     {
-        OKParseOneTopLevelConstruct( &currToken, fileName );
+        OKParseOneTopLevelConstruct( &currToken, context );
     }
 }
 
@@ -850,7 +869,27 @@ int main( int argc, const char * argv[] )
         return result;
     OKPrintTokenList( tokenList );
     
-    OKParseTokenList( tokenList, argv[1] );
+    char                        headerFilePath[MAXPATHLEN] = {0};
+    strncpy( headerFilePath, argv[1], sizeof(headerFilePath)-1 );
+    strncat( headerFilePath, ".h", sizeof(headerFilePath)-1 );
+    
+    char                        sourceFilePath[MAXPATHLEN] = {0};
+    strncpy( sourceFilePath, argv[1], sizeof(sourceFilePath)-1 );
+    strncat( sourceFilePath, ".c", sizeof(sourceFilePath)-1 );
+    
+    struct OKParseContext       context = {0};
+    context.fileName = argv[1];
+    context.headerFile = fopen( headerFilePath, "w");
+    context.sourceFile = fopen( sourceFilePath, "w");
+    
+    fprintf( context.headerFile, "//\n//  Header auto-generated from %s\n", argv[1] );
+    fprintf( context.headerFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n\n" );
+    
+    fprintf( context.sourceFile, "//\n//  Source file auto-generated from %s\n", argv[1] );
+    fprintf( context.sourceFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n" );
+    fprintf( context.sourceFile, "\n#include \"%s\"\n\n", headerFilePath );
+    
+    OKParseTokenList( tokenList, &context );
     
     OKFreeTokenList( tokenList );
     
