@@ -13,6 +13,7 @@
 		55452BAB1A00C03F00A87C59 /* OKParser.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BA91A00C03F00A87C59 /* OKParser.c */; };
 		55452BBB1A00E3DA00A87C59 /* example.ok.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BB71A00E3DA00A87C59 /* example.ok.c */; };
 		55452BBC1A00E3DA00A87C59 /* ok_object.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BB91A00E3DA00A87C59 /* ok_object.c */; };
+		55452BBF1A01A2A500A87C59 /* OKStringBuffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BBD1A01A2A500A87C59 /* OKStringBuffer.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -51,6 +52,8 @@
 		55452BB81A00E3DA00A87C59 /* example.ok.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = example.ok.h; path = examples/example.ok.h; sourceTree = SOURCE_ROOT; };
 		55452BB91A00E3DA00A87C59 /* ok_object.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ok_object.c; path = examples/ok_object.c; sourceTree = SOURCE_ROOT; };
 		55452BBA1A00E3DA00A87C59 /* ok_object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ok_object.h; path = examples/ok_object.h; sourceTree = SOURCE_ROOT; };
+		55452BBD1A01A2A500A87C59 /* OKStringBuffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = OKStringBuffer.c; sourceTree = "<group>"; };
+		55452BBE1A01A2A500A87C59 /* OKStringBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OKStringBuffer.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +103,8 @@
 				55452BA61A00BE2500A87C59 /* OKTokenizer.c */,
 				55452BAA1A00C03F00A87C59 /* OKParser.h */,
 				55452BA91A00C03F00A87C59 /* OKParser.c */,
+				55452BBE1A01A2A500A87C59 /* OKStringBuffer.h */,
+				55452BBD1A01A2A500A87C59 /* OKStringBuffer.c */,
 			);
 			path = ObjectiveK;
 			sourceTree = "<group>";
@@ -194,6 +199,7 @@
 			files = (
 				55452B9C19FE1DFF00A87C59 /* main.c in Sources */,
 				55452BA51A00B76200A87C59 /* OKToken.c in Sources */,
+				55452BBF1A01A2A500A87C59 /* OKStringBuffer.c in Sources */,
 				55452BAB1A00C03F00A87C59 /* OKParser.c in Sources */,
 				55452BA81A00BE2500A87C59 /* OKTokenizer.c in Sources */,
 			);

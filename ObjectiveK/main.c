@@ -100,26 +100,33 @@ int main( int argc, const char * argv[] )
     
     struct OKParseContext       context = {0};
     context.fileName = argv[1];
-    context.headerFile = fopen( headerFilePath, "w");
-    context.sourceFile = fopen( sourceFilePath, "w");
+    
 #if 1
     context.suppressLineDirectives = true;
 #endif
     
-    fprintf( context.headerFile, "//\n//  Header auto-generated from %s\n", argv[1] );
-    fprintf( context.headerFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n\n" );
-    fprintf( context.sourceFile, "\n#include \"ok_object.h\"\n\n" );
+    OKStringBufferAppendFmt( &context.headerString, "//\n//  Header auto-generated from %s\n", argv[1] );
+    OKStringBufferAppendFmt( &context.headerString, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n\n" );
+    OKStringBufferAppendFmt( &context.headerString, "\n#include \"ok_object.h\"\n\n" );
     
-    fprintf( context.sourceFile, "//\n//  Source file auto-generated from %s\n", argv[1] );
-    fprintf( context.sourceFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n" );
-    fprintf( context.sourceFile, "\n#include \"%s\"\n\n", headerFilePath );
+    OKStringBufferAppendFmt( &context.sourceString, "//\n//  Source file auto-generated from %s\n", argv[1] );
+    OKStringBufferAppendFmt( &context.sourceString, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n" );
+    OKStringBufferAppendFmt( &context.sourceString, "\n#include \"%s\"\n\n", headerFilePath );
     
     OKParseTokenList( tokenList, &context );
     
     OKFreeTokenList( tokenList );
 
-    fclose( context.headerFile );
-    fclose( context.sourceFile );
+    FILE*   headerFile = fopen( headerFilePath, "w");
+    fwrite( context.headerString.string, 1, context.headerString.stringLength -1, headerFile );
+    fclose( headerFile );
+    
+    FILE*   sourceFile = fopen( sourceFilePath, "w");
+    fwrite( context.sourceString.string, 1, context.sourceString.stringLength -1, sourceFile );
+    fclose( sourceFile );
+    
+    OKStringBufferFree( &context.headerString );
+    OKStringBufferFree( &context.sourceString );
 
     return result;
 }

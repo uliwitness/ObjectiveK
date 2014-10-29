@@ -11,17 +11,20 @@
 
 #include <stdio.h>
 #include "OKToken.h"
+#include "OKStringBuffer.h"
 
 
 /*! Holds some state needed by the various parser methods, like the files to
     write to. */
 struct OKParseContext
 {
-    const char*     fileName;   //! Path to the current file being parsed.
-    const char*     className;  //! Name of the class currently being parsed (initialize to NULL).
-    FILE*           headerFile; //! The C header file to write the header code to.
-    FILE*           sourceFile; //! The C source file to write source code to.
-    bool            suppressLineDirectives; //!Don't generate #line preprocessor directives that make errors refer to the original .ok source file. Used for debugging this code generator's output.
+    const char*             fileName;                   //! Path to the current file being parsed.
+    const char*             className;                  //! Name of the class currently being parsed (initialize to NULL).
+    struct OKStringBuffer   headerString;               //! The C header file to write the header code to.
+    struct OKStringBuffer   sourceString;               //! The C source file to write source code to.
+    struct OKStringBuffer   currentVTableHeaderString;  //! The buffer in which we assemble the xxx_isa struct for our class.
+    struct OKStringBuffer   currentVTableSourceString;  //! The buffer in which we assemble the xxx___isa global of type xxx_isa for our class.
+    bool                    suppressLineDirectives;     //!Don't generate #line preprocessor directives that make errors refer to the original .ok source file. Used for debugging this code generator's output.
 };
 
 

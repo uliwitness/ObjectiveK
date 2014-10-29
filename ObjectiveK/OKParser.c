@@ -12,14 +12,14 @@
 
 void    OKPrintInitCode( const char* varName, struct OKParseContext* context )
 {
-    fprintf( context->sourceFile, "\t%s___init_isa();\n", context->className );
-    fprintf( context->sourceFile, "\t(%s)->super.isa->init( (struct object*)%s );\n", varName, varName );
+    OKStringBufferAppendFmt( &context->sourceString, "\t%s___init_isa();\n", context->className );
+    OKStringBufferAppendFmt( &context->sourceString, "\t((struct object*)%s)->isa->init( (struct object*)%s );\n", varName, varName );
 }
 
 
 void    OKPrintDeallocCode( const char* varName, struct OKParseContext* context )
 {
-    fprintf( context->sourceFile, "\t(%s)->super.isa->dealloc( (struct object*)%s );\n", varName, varName);
+    OKStringBufferAppendFmt( &context->sourceString, "\t((struct object*)%s)->isa->dealloc( (struct object*)%s );\n", varName, varName);
 }
 
 
@@ -29,7 +29,7 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
     {
         OKGoNextTokenSkippingComments(inToken); // +++ Actually parse function body.
     }
-    fprintf( context->sourceFile, "\treturn 0;\n");    // +++ Only until we actually parse the body.
+    OKStringBufferAppendFmt( &context->sourceString, "\treturn 0;\n");    // +++ Only until we actually parse the body.
 }
 
 
@@ -55,30 +55,32 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                 return;
             }
             if( !context->suppressLineDirectives )
-                fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->sourceFile, "int    main( int argc, const char** argv )\n" );
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->sourceString, "int    main( int argc, const char** argv )\n" );
             if( !context->suppressLineDirectives )
-                fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->sourceFile, "{\n" );
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->sourceString, "{\n" );
             if( !context->suppressLineDirectives )
-                fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->sourceFile, "\tstruct %s this = {(struct object_isa*)&%s___isa};\n", context->className, context->className );
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->sourceString, "\tstruct %s this = {(struct object_isa*)&%s___isa};\n", context->className, context->className );
             if( !context->suppressLineDirectives )
-                fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             OKPrintInitCode( "&this", context );
             if( !context->suppressLineDirectives )
-                fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->sourceFile, "\tint result = %s___%s( &this );\n", context->className, funcName );
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->sourceString, "\tint result = ((struct %s_isa*) ((struct object*)&this)->isa)->%s( &this );\n", context->className, funcName );
+            OKStringBufferAppendFmt( &context->currentVTableHeaderString, "\tint (*%s)( struct %s * this );\n", funcName, context->className );
+            OKStringBufferAppendFmt( &context->currentVTableSourceString, "\t%s___%s,\n", context->className, funcName );
             if( !context->suppressLineDirectives )
-                fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             OKPrintDeallocCode( "&this", context );
             if( !context->suppressLineDirectives )
-                fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->sourceFile, "\treturn result;\n}\n\n" );
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->sourceString, "\treturn result;\n}\n\n" );
             if( !context->suppressLineDirectives )
-                fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->headerFile, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
-            fprintf( context->sourceFile, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->headerString, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
+            OKStringBufferAppendFmt( &context->sourceString, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
             OKGoNextTokenSkippingComments( inToken );
             while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
             {
@@ -96,26 +98,26 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                 if( !OKIsOperator( *inToken, ",") && !OKIsOperator( *inToken, ")") )
                 {
                     paramName = OKGetIdentifier(*inToken);
-                    fprintf( context->headerFile, ", %s %s", typeName, paramName );
-                    fprintf( context->sourceFile, ", %s %s", typeName, paramName );
+                    OKStringBufferAppendFmt( &context->headerString, ", %s %s", typeName, paramName );
+                    OKStringBufferAppendFmt( &context->sourceString, ", %s %s", typeName, paramName );
                     OKGoNextTokenSkippingComments( inToken );
                 }
                 else
                 {
-                    fprintf( context->headerFile, ", %s", typeName );
-                    fprintf( context->sourceFile, ", %s", typeName );
+                    OKStringBufferAppendFmt( &context->headerString, ", %s", typeName );
+                    OKStringBufferAppendFmt( &context->sourceString, ", %s", typeName );
                 }
             }
             if( OKIsOperator( *inToken, ")") )
                 OKGoNextTokenSkippingComments( inToken );
-            fprintf( context->headerFile, " );\n");
-            fprintf( context->sourceFile, " )\n{\n");
+            OKStringBufferAppendFmt( &context->headerString, " );\n");
+            OKStringBufferAppendFmt( &context->sourceString, " )\n{\n");
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
             {
                 OKGoNextTokenSkippingComments(inToken);
             }
             OKParseOneFunctionBody( inToken, context );
-            fprintf( context->sourceFile, "}\n\n");
+            OKStringBufferAppendFmt( &context->sourceString, "}\n\n");
             
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
             {
@@ -134,9 +136,9 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             return;
         }
         if( !context->suppressLineDirectives )
-            fprintf( context->sourceFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-        fprintf( context->headerFile, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
-        fprintf( context->sourceFile, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
+            OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+        OKStringBufferAppendFmt( &context->headerString, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
+        OKStringBufferAppendFmt( &context->sourceString, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
         OKGoNextTokenSkippingComments( inToken );
         while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
         {
@@ -153,24 +155,24 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             if( !OKIsOperator( *inToken, ",") && !OKIsOperator( *inToken, ")") )
             {
                 paramName = OKGetIdentifier(*inToken);
-                fprintf( context->headerFile, ", %s %s", typeName, paramName );
-                fprintf( context->sourceFile, ", %s %s", typeName, paramName );
+                OKStringBufferAppendFmt( &context->headerString, ", %s %s", typeName, paramName );
+                OKStringBufferAppendFmt( &context->sourceString, ", %s %s", typeName, paramName );
                 OKGoNextTokenSkippingComments( inToken );
             }
             else
             {
-                fprintf( context->headerFile, ", %s", typeName );
-                fprintf( context->sourceFile, ", %s", typeName );
+                OKStringBufferAppendFmt( &context->headerString, ", %s", typeName );
+                OKStringBufferAppendFmt( &context->sourceString, ", %s", typeName );
             }
         }
-        fprintf( context->headerFile, " );\n");
-        fprintf( context->sourceFile, " )\n{\n");
+        OKStringBufferAppendFmt( &context->headerString, " );\n");
+        OKStringBufferAppendFmt( &context->sourceString, " )\n{\n");
         if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
         {
             OKGoNextTokenSkippingComments(inToken);
         }
         OKParseOneFunctionBody( inToken, context );
-        fprintf( context->sourceFile, "}\n\n");
+        OKStringBufferAppendFmt( &context->sourceString, "}\n\n");
         
         if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
         {
@@ -208,12 +210,18 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             }
             
             if( !context->suppressLineDirectives )
-                fprintf( context->headerFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->headerFile, "struct %s\n{\n", className );
+                OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->headerString, "struct %s\n{\n", className );
             if( !context->suppressLineDirectives )
-                fprintf( context->headerFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->headerFile, "\tstruct %s\tsuper;\n", superclassName );
-            fprintf( context->headerFile, "};\n\n" );
+                OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->headerString, "\tstruct %s\tsuper;\n", superclassName );
+            OKStringBufferAppendFmt( &context->headerString, "};\n\n" );
+            
+            OKStringBufferAppendFmt( &context->currentVTableHeaderString, "struct %s_isa\n{\n", className );
+            OKStringBufferAppendFmt( &context->currentVTableHeaderString, "\tstruct %s_isa\tsuper;\n", superclassName );
+            
+            OKStringBufferAppendFmt( &context->currentVTableSourceString, "struct %s_isa   %s___isa =\n{\n", className, className );
+            OKStringBufferAppendFmt( &context->currentVTableSourceString, "\t{0}, // Set to %s___isa by %s___init_isa().\n", superclassName, className );
             
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
                 OKGoNextTokenSkippingComments( inToken );
@@ -222,21 +230,20 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             {
                 OKParseOneClassLevelConstruct( inToken, context );
             }
-            fprintf( context->headerFile, "struct %s_isa\n{\n", className );
-            fprintf( context->headerFile, "\tstruct %s_isa\tsuper;\n", superclassName );
-            fprintf( context->headerFile, "};\n\n" );
-            fprintf( context->headerFile, "extern struct %s_isa   %s___isa;\n", className, className );
-            fprintf( context->headerFile, "void %s___init_isa( void );\n\n", className );
-           
-            fprintf( context->sourceFile, "struct %s_isa   %s___isa =\n{\n", className, className );
-            fprintf( context->sourceFile, "\t0, // Set to %s___isa by %s___init_isa().\n", superclassName, className );
-            fprintf( context->sourceFile, "};\n\n" );
+            OKStringBufferAppendFmt( &context->currentVTableHeaderString, "};\n\n" );
+            OKStringBufferAppendFmt( &context->currentVTableHeaderString, "extern struct %s_isa   %s___isa;\n", className, className );
+            OKStringBufferAppendFmt( &context->currentVTableHeaderString, "void %s___init_isa( void );\n\n", className );
+            OKStringBufferAppend( &context->headerString, context->currentVTableHeaderString.string );
+            OKStringBufferFree( &context->currentVTableHeaderString );
             
-            fprintf( context->sourceFile, "void %s___init_isa( void )\n{\n", className );
-            fprintf( context->sourceFile, "\t%s___init_isa();\n", superclassName );
-            fprintf( context->sourceFile, "\t%s___isa.super = %s___isa;\n", className, superclassName );
-            fprintf( context->sourceFile, "};\n\n" );
-
+            OKStringBufferAppendFmt( &context->currentVTableSourceString, "};\n\n" );
+            OKStringBufferAppend( &context->sourceString, context->currentVTableSourceString.string );
+            OKStringBufferFree( &context->currentVTableSourceString );
+            
+            OKStringBufferAppendFmt( &context->sourceString, "void %s___init_isa( void )\n{\n", className );
+            OKStringBufferAppendFmt( &context->sourceString, "\t%s___init_isa();\n", superclassName );
+            OKStringBufferAppendFmt( &context->sourceString, "\t%s___isa.super = %s___isa;\n", className, superclassName );
+            OKStringBufferAppendFmt( &context->sourceString, "};\n\n" );
         }
     }
     else if( OKIsIdentifier( *inToken, "extension" ) )
@@ -264,8 +271,8 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             OKGoNextTokenSkippingComments( inToken );
             
             if( !context->suppressLineDirectives )
-                fprintf( context->headerFile, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            fprintf( context->headerFile, "// Extension %s to class %s\n", className, superclassName );
+                OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+            OKStringBufferAppendFmt( &context->headerString, "// Extension %s to class %s\n", className, superclassName );
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
                 OKGoNextTokenSkippingComments( inToken );
             context->className = superclassName;
