@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		55452B9C19FE1DFF00A87C59 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452B9B19FE1DFF00A87C59 /* main.c */; };
+		55452BA51A00B76200A87C59 /* OKToken.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BA31A00B76200A87C59 /* OKToken.c */; };
+		55452BA81A00BE2500A87C59 /* OKTokenizer.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BA61A00BE2500A87C59 /* OKTokenizer.c */; };
+		55452BAB1A00C03F00A87C59 /* OKParser.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BA91A00C03F00A87C59 /* OKParser.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,6 +29,12 @@
 		55452B9819FE1DFF00A87C59 /* objk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = objk; sourceTree = BUILT_PRODUCTS_DIR; };
 		55452B9B19FE1DFF00A87C59 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		55452BA219FE238C00A87C59 /* example.ok */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = example.ok; path = examples/example.ok; sourceTree = SOURCE_ROOT; };
+		55452BA31A00B76200A87C59 /* OKToken.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = OKToken.c; sourceTree = "<group>"; };
+		55452BA41A00B76200A87C59 /* OKToken.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OKToken.h; sourceTree = "<group>"; };
+		55452BA61A00BE2500A87C59 /* OKTokenizer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = OKTokenizer.c; sourceTree = "<group>"; };
+		55452BA71A00BE2500A87C59 /* OKTokenizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OKTokenizer.h; sourceTree = "<group>"; };
+		55452BA91A00C03F00A87C59 /* OKParser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = OKParser.c; sourceTree = "<group>"; };
+		55452BAA1A00C03F00A87C59 /* OKParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OKParser.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,8 +67,14 @@
 		55452B9A19FE1DFF00A87C59 /* ObjectiveK */ = {
 			isa = PBXGroup;
 			children = (
-				55452B9B19FE1DFF00A87C59 /* main.c */,
 				55452BA219FE238C00A87C59 /* example.ok */,
+				55452B9B19FE1DFF00A87C59 /* main.c */,
+				55452BA41A00B76200A87C59 /* OKToken.h */,
+				55452BA31A00B76200A87C59 /* OKToken.c */,
+				55452BA71A00BE2500A87C59 /* OKTokenizer.h */,
+				55452BA61A00BE2500A87C59 /* OKTokenizer.c */,
+				55452BAA1A00C03F00A87C59 /* OKParser.h */,
+				55452BA91A00C03F00A87C59 /* OKParser.c */,
 			);
 			path = ObjectiveK;
 			sourceTree = "<group>";
@@ -121,6 +136,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				55452B9C19FE1DFF00A87C59 /* main.c in Sources */,
+				55452BA51A00B76200A87C59 /* OKToken.c in Sources */,
+				55452BAB1A00C03F00A87C59 /* OKParser.c in Sources */,
+				55452BA81A00BE2500A87C59 /* OKTokenizer.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -234,6 +252,7 @@
 				55452BA119FE1DFF00A87C59 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
