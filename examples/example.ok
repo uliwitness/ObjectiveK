@@ -11,6 +11,6 @@ class program
         printf( "Hello World!\n")
         showtext( "And Greetings, Programs!\n" )
 
-extension textShowing : program
-    function showtext(string message)
-        printf( "%s", message )
+//extension textShowing : program
+//    function showtext(string message)
+//        printf( "%s", message )

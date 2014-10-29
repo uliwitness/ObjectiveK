@@ -21,6 +21,7 @@ struct OKParseContext
     const char*     className;  //! Name of the class currently being parsed (initialize to NULL).
     FILE*           headerFile; //! The C header file to write the header code to.
     FILE*           sourceFile; //! The C source file to write source code to.
+    bool            suppressLineDirectives; //!Don't generate #line preprocessor directives that make errors refer to the original .ok source file. Used for debugging this code generator's output.
 };
 
 

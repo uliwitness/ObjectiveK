@@ -33,6 +33,63 @@ int main( int argc, const char * argv[] )
         return result;
     OKPrintTokenList( tokenList );
     
+    // Write out header for the basic structure of an object:
+    char                        objectHeaderFilePath[MAXPATHLEN] = {0};
+    strncpy( objectHeaderFilePath, argv[1], sizeof(objectHeaderFilePath)-1 );
+    for( int x = (int)strlen(objectHeaderFilePath) -1; x >= 0; x-- )
+    {
+        if( objectHeaderFilePath[x] == '/' )
+        {
+            objectHeaderFilePath[x+1] = 0;
+            break;
+        }
+    }
+    char                        objectFilePath[MAXPATHLEN] = {0};
+    strncpy( objectFilePath, objectHeaderFilePath, sizeof(objectFilePath)-1 );
+    strncat( objectHeaderFilePath, "ok_object.h", sizeof(objectHeaderFilePath)-1 );
+    
+    FILE*   objectHeaderFile = fopen( objectHeaderFilePath, "w");
+    fprintf( objectHeaderFile, "//\n//  Header auto-generated from %s\n", argv[1] );
+    fprintf( objectHeaderFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n\n" );
+    fprintf( objectHeaderFile, "#include <stdlib.h>\n\n" );
+    fprintf( objectHeaderFile, "struct object\n{\n" );
+    fprintf( objectHeaderFile, "\tstruct object_isa*    isa;\n" );
+    fprintf( objectHeaderFile, "};\n\n" );
+    fprintf( objectHeaderFile, "struct object_isa\n{\n" );
+    fprintf( objectHeaderFile, "\tvoid\t(*init)( struct object* this );\n" );
+    fprintf( objectHeaderFile, "\tvoid\t(*dealloc)( struct object* this );\n" );
+    fprintf( objectHeaderFile, "};\n\n" );
+    fprintf( objectHeaderFile, "// Instance methods (clients generally don't care about these):\n" );
+    fprintf( objectHeaderFile, "extern void  object___init( struct object* this );\n" );
+    fprintf( objectHeaderFile, "extern void  object___dealloc( struct object* this );\n\n" );
+    fprintf( objectHeaderFile, "extern void  object___init_isa( void );\n\n" );
+    fprintf( objectHeaderFile, "// vtable for plain objects:\n" );
+    fprintf( objectHeaderFile, "extern struct object_isa\tobject___isa;\n\n" );
+    fprintf( objectHeaderFile, "// built-in string class:\n" );
+    fprintf( objectHeaderFile, "struct string\n{\n\tstruct object\t\tsuper;\n\tsize_t\t\t\t\tstringLength;\n\tconst char*\t\t\tstringBuffer;\n};\n" );
+    fclose( objectHeaderFile );
+    
+    // Write out source file for the basic structure of an object:
+    strncat( objectFilePath, "ok_object.c", sizeof(objectFilePath)-1 );
+    
+    FILE*   objectFile = fopen( objectFilePath, "w");
+    fprintf( objectFile, "//\n//  Source file auto-generated from %s\n", argv[1] );
+    fprintf( objectFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n\n" );
+    fprintf( objectFile, "#include \"ok_object.h\"\n\n" );
+    fprintf( objectFile, "struct object_isa     object___isa =\n{\n" );
+    fprintf( objectFile, "\tobject___init,\n" );
+    fprintf( objectFile, "\tobject___dealloc\n" );
+    fprintf( objectFile, "};\n\n" );
+    fprintf( objectFile, "void  object___init( struct object* this )\n{\n" );
+    fprintf( objectFile, "}\n\n" );
+    fprintf( objectFile, "void  object___dealloc( struct object* this )\n{\n" );
+    fprintf( objectFile, "}\n" );
+    fprintf( objectFile, "void  object___init_isa( void )\n{\n" );
+    fprintf( objectFile, "\t// Nothing to do for 'object' base class.\n" );
+    fprintf( objectFile, "}\n" );
+    fclose( objectFile );
+    
+    // Create header and source file for C code generated from ObjK code:
     char                        headerFilePath[MAXPATHLEN] = {0};
     strncpy( headerFilePath, argv[1], sizeof(headerFilePath)-1 );
     strncat( headerFilePath, ".h", sizeof(headerFilePath)-1 );
@@ -45,9 +102,13 @@ int main( int argc, const char * argv[] )
     context.fileName = argv[1];
     context.headerFile = fopen( headerFilePath, "w");
     context.sourceFile = fopen( sourceFilePath, "w");
+#if 1
+    context.suppressLineDirectives = true;
+#endif
     
     fprintf( context.headerFile, "//\n//  Header auto-generated from %s\n", argv[1] );
     fprintf( context.headerFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n\n" );
+    fprintf( context.sourceFile, "\n#include \"ok_object.h\"\n\n" );
     
     fprintf( context.sourceFile, "//\n//  Source file auto-generated from %s\n", argv[1] );
     fprintf( context.sourceFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n" );
@@ -56,6 +117,9 @@ int main( int argc, const char * argv[] )
     OKParseTokenList( tokenList, &context );
     
     OKFreeTokenList( tokenList );
-    
+
+    fclose( context.headerFile );
+    fclose( context.sourceFile );
+
     return result;
 }
