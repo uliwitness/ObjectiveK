@@ -55,6 +55,7 @@ void    OKStringBufferAppendFmt( struct OKStringBuffer * buf, const char* fmt, .
     OKStringBufferAppend( buf, bufStr );
 }
 
+
 void    OKStringBufferFree( struct OKStringBuffer * buf )
 {
     if( buf && buf->string )
