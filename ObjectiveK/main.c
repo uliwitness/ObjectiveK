@@ -31,7 +31,9 @@ int main( int argc, const char * argv[] )
     int result = OKTokenize( theFile, &tokenList );
     if( result != 0 )
         return result;
+#if 0
     OKPrintTokenList( tokenList );
+#endif
     
     // Write out header for the basic structure of an object:
     char                        objectHeaderFilePath[MAXPATHLEN] = {0};
@@ -68,7 +70,9 @@ int main( int argc, const char * argv[] )
     fprintf( objectHeaderFile, "// built-in string class:\n" );
     fprintf( objectHeaderFile, "struct string\n{\n\tstruct object\t\tsuper;\n\tsize_t\t\t\t\tstringLength;\n\tconst char*\t\t\tstringBuffer;\n};\n" );
     fclose( objectHeaderFile );
-    
+
+    printf("Generated file \"%s\".\n",objectHeaderFilePath);
+
     // Write out source file for the basic structure of an object:
     strncat( objectFilePath, "ok_object.c", sizeof(objectFilePath)-1 );
     
@@ -88,6 +92,8 @@ int main( int argc, const char * argv[] )
     fprintf( objectFile, "\t// Nothing to do for 'object' base class.\n" );
     fprintf( objectFile, "}\n" );
     fclose( objectFile );
+
+    printf("Generated file \"%s\".\n",objectFilePath);
     
     // Create header and source file for C code generated from ObjK code:
     char                        headerFilePath[MAXPATHLEN] = {0};
@@ -101,7 +107,7 @@ int main( int argc, const char * argv[] )
     struct OKParseContext       context = {0};
     context.fileName = argv[1];
     
-#if 1
+#if 0
     context.suppressLineDirectives = true;
 #endif
     
@@ -120,10 +126,12 @@ int main( int argc, const char * argv[] )
     FILE*   headerFile = fopen( headerFilePath, "w");
     fwrite( context.headerString.string, 1, context.headerString.stringLength -1, headerFile );
     fclose( headerFile );
+    printf("Generated file \"%s\".\n",headerFilePath);
     
     FILE*   sourceFile = fopen( sourceFilePath, "w");
     fwrite( context.sourceString.string, 1, context.sourceString.stringLength -1, sourceFile );
     fclose( sourceFile );
+    printf("Generated file \"%s\".\n",sourceFilePath);
     
     OKStringBufferFree( &context.headerString );
     OKStringBufferFree( &context.sourceString );
