@@ -90,6 +90,18 @@ extern const char*    OKGetIdentifier( struct OKToken * inToken );
 extern const char*    OKGetStringLiteral( struct OKToken * inToken );
 
 
+/*! If the given token is an integer number literal, return it as a string, otherwise return NULL.
+ 
+ inToken may be NULL.   */
+extern const char*    OKGetIntegerLiteral( struct OKToken * inToken );
+
+
+/*! If the given token is an floating point number literal, return it as a string, otherwise return NULL.
+ 
+ inToken may be NULL.   */
+extern const char*    OKGetFloatLiteral( struct OKToken * inToken );
+
+
 /*! Free the given linked list of tokens (i.e. call OKFreeToken() on all of the tokens in the linked list from inToken to the end). */
 extern void    OKFreeTokenList( struct OKToken * inToken );
 

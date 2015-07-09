@@ -24,8 +24,8 @@ struct program_isa
 	int (*startUp)( struct program * this );
 };
 
-#line 14 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
+#line 15 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 extern struct program_isa   program___isa;
-#line 14 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
+#line 15 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 void program___init_isa( void );
 

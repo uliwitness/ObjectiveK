@@ -116,3 +116,19 @@ const char*    OKGetStringLiteral( struct OKToken * inToken )
         return inToken->string;
     return NULL;
 }
+
+
+const char*    OKGetIntegerLiteral( struct OKToken * inToken )
+{
+    if( inToken && inToken->tokenType == OKTokenMode_Integer )
+        return inToken->string;
+    return NULL;
+}
+
+
+const char*    OKGetFloatLiteral( struct OKToken * inToken )
+{
+    if( inToken && inToken->tokenType == OKTokenMode_Float )
+        return inToken->string;
+    return NULL;
+}

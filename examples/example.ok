@@ -8,9 +8,10 @@
 
 class program
     main function startUp()
-        printf( "Hello World!\n")
-        showtext( "And Greetings, Programs!\n" )
+        printf( "Hello World!\n" )
+        //showtext( "And Greetings, Programs!\n" )
+        return( 0 )
 
 //extension textShowing : program
-//    function showtext(string message)
+//    function showtext( string message )
 //        printf( "%s", message )

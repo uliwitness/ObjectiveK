@@ -68,13 +68,29 @@ void    OKPrintDeallocCode( const char* varName, struct OKParseContext* context 
 void    OKParseOneExpression( struct OKToken ** inToken, const char* operatorToEndOn, struct OKParseContext* context )
 {
     const char*     strContent = OKGetStringLiteral(*inToken);
+    const char*     intContent = OKGetIntegerLiteral(*inToken);
+    const char*     floatContent = OKGetFloatLiteral(*inToken);
     if( strContent )
     {
         OKAppendStringLiteralToStringBufferAndEscapeIt( &context->sourceString, strContent );
         OKGoNextTokenSkippingComments(inToken);
     }
+    else if( intContent )
+    {
+        OKStringBufferAppend( &context->sourceString, intContent );
+        OKGoNextTokenSkippingComments(inToken);
+    }
+    else if( floatContent )
+    {
+        OKStringBufferAppend( &context->sourceString, floatContent );
+        OKGoNextTokenSkippingComments(inToken);
+    }
     else
-        OKGoNextTokenSkippingComments(inToken); // +++ Handle other constructs and error case.
+    {
+        fprintf( stderr, "error:%d: Unrecognized expression starting with '%s'.\n", (*inToken)->lineNumber, (*inToken) ? (*inToken)->string : "end of file" );
+        *inToken = NULL;
+        return;
+    }
 }
 
 

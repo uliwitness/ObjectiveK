@@ -27,9 +27,8 @@ int    program___startUp( struct program* this )
 {
 #line 11 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 	printf("Hello World!\n");
-#line 12 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
-	showtext("And Greetings, Programs!\n");
-	return 0;
+#line 13 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
+	return(0);
 }
 
 #line 9 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
