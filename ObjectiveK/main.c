@@ -133,6 +133,10 @@ int main( int argc, const char * argv[] )
     fclose( sourceFile );
     printf("Generated file \"%s\".\n",sourceFilePath);
     
+#if 1
+    OKParserPrintParseContext( &context );
+#endif
+    
     OKStringBufferFree( &context.headerString );
     OKStringBufferFree( &context.sourceString );
     OKMapFree( context.classes );

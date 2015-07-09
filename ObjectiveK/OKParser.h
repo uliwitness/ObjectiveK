@@ -60,4 +60,8 @@ extern void    OKPrintInitCode( const char* varName, struct OKParseContext* cont
 extern void    OKPrintDeallocCode( const char* varName, struct OKParseContext* context );
 
 
+/*! Debug helper to print out the contents of our parsing metadata, particularly the class/method list. */
+extern void    OKParserPrintParseContext( struct OKParseContext* context );
+
+
 #endif /* defined(__ObjectiveK__OKParser__) */

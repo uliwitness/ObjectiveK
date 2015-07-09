@@ -443,3 +443,19 @@ void    OKParseTokenList( struct OKToken * inToken, struct OKParseContext* conte
     }
 }
 
+
+void    OKParserPrintParseContext( struct OKParseContext* context )
+{
+    printf( "File:\t%s\nClass:\t%s\n", context->fileName, context->className );
+    printf( "Classes:\n" );
+    for( size_t x = 0; x < context->classes->count; x++ )
+    {
+        printf( "\t%s:\n", context->classes->entries[x].key );
+        struct OKMap    *   currClass = context->classes->entries[x].value;
+        for( size_t y = 0; y < currClass->count; y++ )
+        {
+            printf( "\t\t%s (%s)\n", currClass->entries[y].key, (char*)currClass->entries[y].value );
+        }
+    }
+}
+
