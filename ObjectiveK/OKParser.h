@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "OKToken.h"
 #include "OKStringBuffer.h"
+#include "OKMap.h"
 
 
 /*! Holds some state needed by the various parser methods, like the files to
@@ -24,7 +25,8 @@ struct OKParseContext
     struct OKStringBuffer   sourceString;               //! The C source file to write source code to.
     struct OKStringBuffer   currentVTableHeaderString;  //! The buffer in which we assemble the xxx_isa struct for our class.
     struct OKStringBuffer   currentVTableSourceString;  //! The buffer in which we assemble the xxx___isa global of type xxx_isa for our class.
-    bool                    suppressLineDirectives;     //!Don't generate #line preprocessor directives that make errors refer to the original .ok source file. Used for debugging this code generator's output.
+    bool                    suppressLineDirectives;     //! Don't generate #line preprocessor directives that make errors refer to the original .ok source file. Used for debugging this code generator's output.
+    struct OKMap *          classes;                    //! List of classes by name, containing dictionaries with their method names.
 };
 
 

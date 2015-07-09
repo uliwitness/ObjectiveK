@@ -14,6 +14,7 @@
 		55452BBB1A00E3DA00A87C59 /* example.ok.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BB71A00E3DA00A87C59 /* example.ok.c */; };
 		55452BBC1A00E3DA00A87C59 /* ok_object.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BB91A00E3DA00A87C59 /* ok_object.c */; };
 		55452BBF1A01A2A500A87C59 /* OKStringBuffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BBD1A01A2A500A87C59 /* OKStringBuffer.c */; };
+		55861EC01B4F2382004620C6 /* OKMap.c in Sources */ = {isa = PBXBuildFile; fileRef = 55861EBE1B4F2382004620C6 /* OKMap.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -54,6 +55,8 @@
 		55452BBA1A00E3DA00A87C59 /* ok_object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ok_object.h; path = examples/ok_object.h; sourceTree = SOURCE_ROOT; };
 		55452BBD1A01A2A500A87C59 /* OKStringBuffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = OKStringBuffer.c; sourceTree = "<group>"; };
 		55452BBE1A01A2A500A87C59 /* OKStringBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OKStringBuffer.h; sourceTree = "<group>"; };
+		55861EBE1B4F2382004620C6 /* OKMap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = OKMap.c; sourceTree = "<group>"; };
+		55861EBF1B4F2382004620C6 /* OKMap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OKMap.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +108,8 @@
 				55452BA91A00C03F00A87C59 /* OKParser.c */,
 				55452BBE1A01A2A500A87C59 /* OKStringBuffer.h */,
 				55452BBD1A01A2A500A87C59 /* OKStringBuffer.c */,
+				55861EBF1B4F2382004620C6 /* OKMap.h */,
+				55861EBE1B4F2382004620C6 /* OKMap.c */,
 			);
 			path = ObjectiveK;
 			sourceTree = "<group>";
@@ -197,6 +202,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				55861EC01B4F2382004620C6 /* OKMap.c in Sources */,
 				55452B9C19FE1DFF00A87C59 /* main.c in Sources */,
 				55452BA51A00B76200A87C59 /* OKToken.c in Sources */,
 				55452BBF1A01A2A500A87C59 /* OKStringBuffer.c in Sources */,
@@ -351,6 +357,7 @@
 				55452BB61A00E3C100A87C59 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

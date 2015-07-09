@@ -300,6 +300,8 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
                 superclassName = OKGetIdentifier(*inToken);
             }
             
+            OKMapAddEntry( context->classes, className, OKMallocStringToStringMap() );
+            
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             OKStringBufferAppendFmt( &context->headerString, "struct %s\n{\n", className );
@@ -373,6 +375,14 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             }
             OKGoNextTokenSkippingComments( inToken );
             
+            struct OKMap*   classMethods = OKMapFindEntry( context->classes, className );
+            if( !classMethods )
+            {
+                fprintf( stderr, "error:%d: Unknown class '%s' to extend with '%s'.\n", (*inToken)->lineNumber, superclassName, className );
+                *inToken = NULL;
+                return;
+            }
+            
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             OKStringBufferAppendFmt( &context->headerString, "// Extension %s to class %s\n", className, superclassName );
@@ -395,6 +405,8 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
 
 void    OKParseTokenList( struct OKToken * inToken, struct OKParseContext* context )
 {
+    context->classes = OKMallocStringToMapMap();
+    
     struct OKToken *    currToken = inToken;
     while( currToken )
     {
