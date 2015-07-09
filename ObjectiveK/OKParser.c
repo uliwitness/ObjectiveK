@@ -96,9 +96,15 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
                 while( *inToken && !OKIsOperator( *inToken, ")") )
                 {
                     OKParseOneExpression( inToken, ",", context );
+                    if( !(*inToken) )
+                        return;
                 }
                 if( !OKIsOperator( *inToken, ")") )
-                    ;   // +++ Error: Expected ")" here.
+                {
+                    fprintf( stderr, "error:%d: Expected ')' here, found '%s'.\n", (*inToken)->lineNumber, (*inToken) ? (*inToken)->string : "end of file" );
+                    *inToken = NULL;
+                    return;
+                }
                 OKGoNextTokenSkippingComments(inToken);
                 OKStringBufferAppend( &context->sourceString, ");\n" );
             }
@@ -106,9 +112,12 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
         else if( OKIsLineBreak( *inToken ) )
             OKGoNextTokenSkippingComments(inToken);
         else
-            ;   // +++ Handle error case.
+        {
+            fprintf( stderr, "error:%d: Unknown statement starting with '%s'.\n", (*inToken)->lineNumber, (*inToken) ? (*inToken)->string : "end of file" );
+            *inToken = NULL;
+            return;
+        }
     }
-    OKStringBufferAppendFmt( &context->sourceString, "\treturn 0;\n");    // +++ Only until we actually parse the body.
 }
 
 
@@ -330,6 +339,8 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             while( (*inToken) && (*inToken)->indentLevel == 4 )
             {
                 OKParseOneClassLevelConstruct( inToken, context );
+                if( !(*inToken) )
+                    return;
             }
             OKStringBufferAppendFmt( &context->currentVTableHeaderString, "};\n\n" );
             if( !context->suppressLineDirectives )
@@ -361,7 +372,7 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             OKGoNextTokenSkippingComments( inToken );
             if( !OKIsOperator( *inToken, ":") )  // Have superclass!
             {
-                fprintf( stderr, "error:%d: Extension %s does not specify the class it extends.", (*inToken)->lineNumber, className );
+                fprintf( stderr, "error:%d: Extension %s does not specify the class it extends.\n", (*inToken)->lineNumber, className );
                 *inToken = NULL;
                 return;
             }
@@ -369,7 +380,7 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             superclassName = OKGetIdentifier(*inToken);
             if( !superclassName )
             {
-                fprintf( stderr, "error:%d: Extension %s does not specify the class it extends.", (*inToken)->lineNumber, className );
+                fprintf( stderr, "error:%d: Extension %s does not specify the class it extends.\n", (*inToken)->lineNumber, className );
                 *inToken = NULL;
                 return;
             }
@@ -392,12 +403,14 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             while( (*inToken) && (*inToken)->indentLevel == 4 )
             {
                 OKParseOneClassLevelConstruct( inToken, context );
+                if( !(*inToken) )
+                    return;
             }
         }
     }
     else if( *inToken )
     {
-        fprintf( stderr, "error:%d: Unknown top-level construct %s.", (*inToken)->lineNumber, (*inToken)->string );
+        fprintf( stderr, "error:%d: Unknown top-level construct %s.\n", (*inToken)->lineNumber, (*inToken)->string );
         *inToken = NULL;
     }
 }

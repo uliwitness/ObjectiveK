@@ -304,7 +304,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 {
                     if( identifierLen >= (sizeof(identifierStr) -1) )
                     {
-                        fprintf(stderr,"error: Identifier longer than 1024 characters.\n");
+                        fprintf(stderr,"error: Identifier longer than %lu characters.\n", (sizeof(identifierStr) -1));
                         return 2;
                     }
                     identifierStr[identifierLen++] = currCh;
@@ -363,7 +363,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 {
                     if( identifierLen >= (sizeof(identifierStr) -1) )
                     {
-                        fprintf(stderr,"error: String constant longer than 1024 characters.\n");
+                        fprintf(stderr,"error: String constant longer than %lu characters.\n",(sizeof(identifierStr) -1));
                         return 2;
                     }
                     if( currCh == '\n' )
