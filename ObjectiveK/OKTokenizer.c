@@ -193,7 +193,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 else
                 {
                     OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
-                    tokenMode = OKTokenMode_Identifier;
+                    tokenMode = OKTokenMode_Whitespace;
                     identifierLen = 1;
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
@@ -250,7 +250,7 @@ int    OKTokenize( FILE* theFile, struct OKToken ** outTokenList )
                 else
                 {
                     OKMallocToken( outTokenList, &prevToken, tokenMode, indentLevel, lineNumber, identifierStr, identifierLen );
-                    tokenMode = OKTokenMode_Identifier;
+                    tokenMode = OKTokenMode_Whitespace;
                     identifierLen = 1;
                     identifierStr[0] = currCh;
                     identifierStr[1] = 0;
