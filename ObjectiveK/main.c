@@ -127,6 +127,8 @@ int main( int argc, const char * argv[] )
     
     OKStringBufferFree( &context.headerString );
     OKStringBufferFree( &context.sourceString );
+    
+    printf("Done.\n");
 
     return result;
 }

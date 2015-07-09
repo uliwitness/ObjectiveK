@@ -61,8 +61,15 @@ extern void    OKPrintToken( struct OKToken * theToken );
 extern bool    OKIsOperator( struct OKToken * inToken, const char* operatorName );
 
 
+/*! Is the given token a line break? Returns FALSE if the token is not of type
+    OKTokenMode_LineBreak.
+ 
+    inToken may be NULL. */
+extern bool    OKIsLineBreak( struct OKToken * inToken );
+
+
 /*! Is the given token the identifier whose string representation is given
-    in operatorName. Returns FALSE if the token is not of type OKTokenMode_Identifier
+    in operatorName? Returns FALSE if the token is not of type OKTokenMode_Identifier
     or if the string representations don't match.
     
     Used to verify a certain identifier is present in the token list.
@@ -75,6 +82,12 @@ extern bool    OKIsIdentifier( struct OKToken * inToken, const char* identifierN
  
     inToken may be NULL.   */
 extern const char*    OKGetIdentifier( struct OKToken * inToken );
+
+
+/*! If the given token is a string literal, return its string, otherwise return NULL.
+ 
+    inToken may be NULL.   */
+extern const char*    OKGetStringLiteral( struct OKToken * inToken );
 
 
 /*! Free the given linked list of tokens (i.e. call OKFreeToken() on all of the tokens in the linked list from inToken to the end). */

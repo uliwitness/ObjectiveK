@@ -17,6 +17,8 @@ int    main( int argc, const char** argv )
 
 int    program___startUp( struct program* this )
 {
+	printf("Hello World!\n");
+	showtext("And Greetings, Programs!\n");
 	return 0;
 }
 

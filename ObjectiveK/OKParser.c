@@ -10,6 +10,48 @@
 #include "OKTokenizer.h"
 
 
+void    OKAppendStringLiteralToStringBufferAndEscapeIt( struct OKStringBuffer * buf, const char* str )
+{
+    OKStringBufferAppend( buf, "\"" );
+    for( size_t x = 0; str[x] != 0; x++ )
+    {
+        char    unescapedChar[2] = {0};
+        char    escapedQuote[3] = { '\\', '"', 0 };
+        char    escapedNewline[3] = { '\\', 'n', 0 };
+        char    escapedReturn[3] = { '\\', 'r', 0 };
+        char    escapedBackslash[3] = { '\\', '\\', 0 };
+        char    escapedNull[3] = { '\\', '0', 0 };
+        switch( str[x] )
+        {
+            case '"':
+                OKStringBufferAppend( buf, escapedQuote );
+                break;
+            
+            case '\n':
+                OKStringBufferAppend( buf, escapedNewline );
+                break;
+                
+            case '\r':
+                OKStringBufferAppend( buf, escapedReturn );
+                break;
+                
+            case '\\':
+                OKStringBufferAppend( buf, escapedBackslash );
+                break;
+                
+            case 0:
+                OKStringBufferAppend( buf, escapedNull );
+                break;
+                
+            default:
+                unescapedChar[0] = str[x];
+                OKStringBufferAppend( buf, unescapedChar );
+        }
+    }
+    OKStringBufferAppend( buf, "\"" );
+}
+
+
 void    OKPrintInitCode( const char* varName, struct OKParseContext* context )
 {
     OKStringBufferAppendFmt( &context->sourceString, "\t%s___init_isa();\n", context->className );
@@ -23,11 +65,48 @@ void    OKPrintDeallocCode( const char* varName, struct OKParseContext* context 
 }
 
 
+void    OKParseOneExpression( struct OKToken ** inToken, const char* operatorToEndOn, struct OKParseContext* context )
+{
+    const char*     strContent = OKGetStringLiteral(*inToken);
+    if( strContent )
+    {
+        OKAppendStringLiteralToStringBufferAndEscapeIt( &context->sourceString, strContent );
+        OKGoNextTokenSkippingComments(inToken);
+    }
+    else
+        OKGoNextTokenSkippingComments(inToken); // +++ Handle other constructs and error case.
+}
+
+
 void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext* context )
 {
     while( (*inToken) && (*inToken)->indentLevel == 8 )
     {
-        OKGoNextTokenSkippingComments(inToken); // +++ Actually parse function body.
+        const char*     funcName = OKGetIdentifier(*inToken);
+        if( funcName )  // Had an identifier here?
+        {
+            OKGoNextTokenSkippingComments(inToken);
+            if( OKIsOperator( *inToken, "(") )  // Function call!
+            {
+                if( !context->suppressLineDirectives )
+                    OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+                OKStringBufferAppendFmt( &context->sourceString, "\t%s(", funcName );
+                
+                OKGoNextTokenSkippingComments(inToken);
+                while( *inToken && !OKIsOperator( *inToken, ")") )
+                {
+                    OKParseOneExpression( inToken, ",", context );
+                }
+                if( !OKIsOperator( *inToken, ")") )
+                    ;   // +++ Error: Expected ")" here.
+                OKGoNextTokenSkippingComments(inToken);
+                OKStringBufferAppend( &context->sourceString, ");\n" );
+            }
+        }
+        else if( OKIsLineBreak( *inToken ) )
+            OKGoNextTokenSkippingComments(inToken);
+        else
+            ;   // +++ Handle error case.
     }
     OKStringBufferAppendFmt( &context->sourceString, "\treturn 0;\n");    // +++ Only until we actually parse the body.
 }

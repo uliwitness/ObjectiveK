@@ -90,6 +90,12 @@ bool    OKIsOperator( struct OKToken * inToken, const char* operatorName )
 }
 
 
+bool    OKIsLineBreak( struct OKToken * inToken )
+{
+    return( inToken && inToken->tokenType == OKTokenMode_LineBreak );
+}
+
+
 bool    OKIsIdentifier( struct OKToken * inToken, const char* identifierName )
 {
     return( inToken && inToken->tokenType == OKTokenMode_Identifier && strcmp(inToken->string,identifierName) == 0 );
@@ -99,6 +105,14 @@ bool    OKIsIdentifier( struct OKToken * inToken, const char* identifierName )
 const char*    OKGetIdentifier( struct OKToken * inToken )
 {
     if( inToken && inToken->tokenType == OKTokenMode_Identifier )
+        return inToken->string;
+    return NULL;
+}
+
+
+const char*    OKGetStringLiteral( struct OKToken * inToken )
+{
+    if( inToken && inToken->tokenType == OKTokenMode_String )
         return inToken->string;
     return NULL;
 }
