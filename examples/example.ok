@@ -17,4 +17,5 @@ class program
 
 //extension textShowing : program
 //    function showtext( string message )
-//        printf( "%s", message )
+//        string___print( message )
+//        return( 0 )
