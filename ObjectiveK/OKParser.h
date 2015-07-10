@@ -28,7 +28,7 @@ struct OKParseContext
     struct OKStringBuffer   constantsString;            //! The buffer in which we write string constant objects.
     size_t                  constantsIDSeed;            //! Counter used for generating unique names for string constant objects.
     bool                    suppressLineDirectives;     //! Don't generate #line preprocessor directives that make errors refer to the original .ok source file. Used for debugging this code generator's output.
-    struct OKMap *          classes;                    //! List of classes by name, containing dictionaries with their method names.
+    struct OKMap *          classes;                    //! List of classes by name, containing dictionaries with each method name's signature.
 };
 
 

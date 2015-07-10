@@ -137,14 +137,26 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
                 
                 bool    needsComma = (methodName != NULL);
                 OKGoNextTokenSkippingComments(inToken);
-                while( *inToken && !OKIsOperator( *inToken, ")") )
+                while( *inToken )
                 {
                     if( needsComma )
                         OKStringBufferAppend( &context->sourceString, ", " );
                     OKParseOneExpression( inToken, ",", context );
-                    needsComma = true;
                     if( !(*inToken) )
                         return;
+                    
+                    if( OKIsOperator( *inToken, ")") )
+                    {
+                        break;
+                    }
+                    else if( !OKIsOperator( *inToken, ",") )
+                    {
+                        fprintf( stderr, "error:%d: Expected ',' or ')' here, found '%s'.\n", (*inToken)->lineNumber, (*inToken) ? (*inToken)->string : "end of file" );
+                        *inToken = NULL;
+                        return;
+                    }
+                    OKGoNextTokenSkippingComments(inToken);
+                    needsComma = true;
                 }
                 if( !OKIsOperator( *inToken, ")") )
                 {
