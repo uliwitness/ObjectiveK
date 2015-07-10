@@ -236,10 +236,10 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             OKStringBufferAppendFmt( &context->sourceString, "\treturn result;\n}\n\n" );
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            OKStringBufferAppendFmt( &context->headerString, "int    %s( struct %s* this", internalName, context->className);
+            OKStringBufferAppendFmt( &context->headerString, "int    %s( struct %s* this", internalName, context->className );
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            OKStringBufferAppendFmt( &context->sourceString, "int    %s( struct %s* this", internalName, context->className);
+            OKStringBufferAppendFmt( &context->sourceString, "int    %s( struct %s* this", internalName, context->className );
             OKGoNextTokenSkippingComments( inToken );
             while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
             {
@@ -262,13 +262,13 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                     OKStringBufferAppendFmt( &context->headerString, ", %s %s", typeName, paramName );
                     if( !context->suppressLineDirectives )
                         OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-                    OKStringBufferAppendFmt( &context->sourceString, ", %s %s", typeName, paramName );
+                    OKStringBufferAppendFmt( &context->sourceString, ", struct %s * %s", typeName, paramName );
                     OKGoNextTokenSkippingComments( inToken );
                 }
                 else
                 {
-                    OKStringBufferAppendFmt( &context->headerString, ", %s", typeName );
-                    OKStringBufferAppendFmt( &context->sourceString, ", %s", typeName );
+                    OKStringBufferAppendFmt( &context->headerString, ", struct %s *", typeName );
+                    OKStringBufferAppendFmt( &context->sourceString, ", struct %s *", typeName );
                 }
             }
             if( OKIsOperator( *inToken, ")") )
