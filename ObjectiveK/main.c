@@ -71,9 +71,9 @@ int main( int argc, const char * argv[] )
     fprintf( objectHeaderFile, "struct string\n{\n\tstruct object\t\tsuper;\n\tsize_t\t\t\t\tstringLength;\n\tconst char*\t\t\tstringBuffer;\n};\n\n" );
     fprintf( objectHeaderFile, "struct string_isa\n{\n" );
     fprintf( objectHeaderFile, "\tstruct object_isa super;\n" );
-    fprintf( objectHeaderFile, "\tvoid\t(*print)( struct string* this, ... );\n" );
+    fprintf( objectHeaderFile, "\tvoid\t(*print)( struct string* this );\n" );
     fprintf( objectHeaderFile, "};\n\n" );
-    fprintf( objectHeaderFile, "extern void string___print( struct string* inFmt, ... );\n" );
+    fprintf( objectHeaderFile, "extern void string___print( struct string* inText );\n" );
     fprintf( objectHeaderFile, "extern void  string___init_isa( void );\n\n" );
     fprintf( objectHeaderFile, "extern struct string_isa\tstring___isa;\n\n" );
     fclose( objectHeaderFile );
@@ -109,8 +109,7 @@ int main( int argc, const char * argv[] )
     fprintf( objectFile, "void  string___init_isa( void )\n{\n" );
     fprintf( objectFile, "\tstring___isa.super = object___isa;\n" );
     fprintf( objectFile, "}\n\n" );
-    fprintf( objectFile, "void string___print( struct string* inFmt, ... )\n{\n\tva_list argl;\n\tva_start(argl,inFmt);\n\tvprintf(inFmt->stringBuffer,argl);\n\tva_end(argl);\n" );
-    fprintf( objectFile, "}\n" );
+    fprintf( objectFile, "void string___print( struct string* inText )\n{\n\tprintf(\"%%s\",inText->stringBuffer);\n}\n" );
     fclose( objectFile );
     
     printf("Generated file \"%s\".\n",objectFilePath);

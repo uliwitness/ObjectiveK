@@ -36,10 +36,10 @@ struct string
 struct string_isa
 {
 	struct object_isa super;
-	void	(*print)( struct string* this, ... );
+	void	(*print)( struct string* this );
 };
 
-extern void string___print( struct string* inFmt, ... );
+extern void string___print( struct string* inText );
 extern void  string___init_isa( void );
 
 extern struct string_isa	string___isa;

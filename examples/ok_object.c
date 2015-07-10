@@ -38,10 +38,7 @@ void  string___init_isa( void )
 	string___isa.super = object___isa;
 }
 
-void string___print( struct string* inFmt, ... )
+void string___print( struct string* inText )
 {
-	va_list argl;
-	va_start(argl,inFmt);
-	vprintf(inFmt->stringBuffer,argl);
-	va_end(argl);
+	printf("%s",inText->stringBuffer);
 }
