@@ -104,14 +104,32 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
             OKGoNextTokenSkippingComments(inToken);
             if( OKIsOperator( *inToken, "(") )  // Function call!
             {
+                struct OKMap*   classMethods = OKMapFindEntry( context->classes, context->className );
+                if( !classMethods )
+                {
+                    fprintf( stderr, "error:%d: Couldn't find metadata for class '%s' (internal compiler error).\n", (*inToken)->lineNumber, context->className );
+                    *inToken = NULL;
+                    return;
+                }
+                
                 if( !context->suppressLineDirectives )
                     OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-                OKStringBufferAppendFmt( &context->sourceString, "\t%s(", funcName );
+                char*   methodName = OKMapFindEntry( classMethods, funcName );
+                if( methodName )    // Unqualified virtual method of ourselves!
+                {
+                    OKStringBufferAppendFmt( &context->sourceString, "\t((struct %s_isa*)((struct object*)this)->isa)->%s( this", context->className, funcName );
+                }
+                else    // Some standalone function or language construct.
+                    OKStringBufferAppendFmt( &context->sourceString, "\t%s( ", funcName );
                 
+                bool    needsComma = (methodName != NULL);
                 OKGoNextTokenSkippingComments(inToken);
                 while( *inToken && !OKIsOperator( *inToken, ")") )
                 {
+                    if( needsComma )
+                        OKStringBufferAppend( &context->sourceString, ", " );
                     OKParseOneExpression( inToken, ",", context );
+                    needsComma = true;
                     if( !(*inToken) )
                         return;
                 }
@@ -122,7 +140,7 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
                     return;
                 }
                 OKGoNextTokenSkippingComments(inToken);
-                OKStringBufferAppend( &context->sourceString, ");\n" );
+                OKStringBufferAppend( &context->sourceString, " );\n" );
             }
         }
         else if( OKIsLineBreak( *inToken ) )
@@ -158,6 +176,24 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                 *inToken = NULL;
                 return;
             }
+
+            struct OKMap*   classMethods = OKMapFindEntry( context->classes, context->className );
+            if( !classMethods )
+            {
+                fprintf( stderr, "error:%d: Couldn't find metadata for class '%s' (internal compiler error).\n", (*inToken)->lineNumber, context->className );
+                *inToken = NULL;
+                return;
+            }
+            
+            char    internalName[1024] = {0};
+            snprintf( internalName, sizeof(internalName) -1, "%s___%s", context->className, funcName );
+            if( !OKMapAddEntry( classMethods, funcName, internalName ) )
+            {
+                fprintf( stderr, "error:%d: Out of memory trying to add main method entry for '%s' in class '%s'.\n", (*inToken)->lineNumber, funcName, context->className );
+                *inToken = NULL;
+                return;
+            }
+            
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             OKStringBufferAppendFmt( &context->sourceString, "int    main( int argc, const char** argv )\n" );
@@ -187,10 +223,10 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             OKStringBufferAppendFmt( &context->sourceString, "\treturn result;\n}\n\n" );
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            OKStringBufferAppendFmt( &context->headerString, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
+            OKStringBufferAppendFmt( &context->headerString, "int    %s( struct %s* this", internalName, context->className);
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            OKStringBufferAppendFmt( &context->sourceString, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
+            OKStringBufferAppendFmt( &context->sourceString, "int    %s( struct %s* this", internalName, context->className);
             OKGoNextTokenSkippingComments( inToken );
             while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
             {
@@ -249,15 +285,51 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             *inToken = NULL;
             return;
         }
+
+        struct OKMap*   classMethods = OKMapFindEntry( context->classes, context->className );
+        if( !classMethods )
+        {
+            fprintf( stderr, "error:%d: Couldn't find metadata for class '%s' (internal compiler error).\n", (*inToken)->lineNumber, context->className );
+            *inToken = NULL;
+            return;
+        }
+        
+        char    internalName[1024] = {0};
+        snprintf( internalName, sizeof(internalName) -1, "%s___%s", context->className, funcName );
+        if( !OKMapAddEntry( classMethods, funcName, internalName ) )
+        {
+            fprintf( stderr, "error:%d: Out of memory trying to add method entry for '%s' in class '%s'.\n", (*inToken)->lineNumber, funcName, context->className );
+            *inToken = NULL;
+            return;
+        }
+        
+        OKGoNextTokenSkippingComments( inToken );   // Skip name.
+        if( !OKIsOperator( *inToken, "(") )
+        {
+            fprintf( stderr, "error:%d: Expected '(' after method name '%s' in class '%s'.\n", (*inToken)->lineNumber, funcName, context->className );
+            *inToken = NULL;
+            return;
+        }
+        
+        if( !context->suppressLineDirectives )
+            OKStringBufferAppendFmt( &context->currentVTableHeaderString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+        OKStringBufferAppendFmt( &context->currentVTableHeaderString, "\tint (*%s)( struct %s * this );\n", funcName, context->className );
+        if( !context->suppressLineDirectives )
+            OKStringBufferAppendFmt( &context->currentVTableSourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+        OKStringBufferAppendFmt( &context->currentVTableSourceString, "\t%s,\n", internalName );
+        
         if( !context->suppressLineDirectives )
             OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-        OKStringBufferAppendFmt( &context->headerString, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
+        OKStringBufferAppendFmt( &context->headerString, "int    %s( struct %s* this", internalName, context->className);
         if( !context->suppressLineDirectives )
             OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-        OKStringBufferAppendFmt( &context->sourceString, "int    %s___%s( struct %s* this", context->className, funcName, context->className);
-        OKGoNextTokenSkippingComments( inToken );
+        OKStringBufferAppendFmt( &context->sourceString, "int    %s( struct %s* this", internalName, context->className);
+        
         while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
         {
+            if( OKIsOperator( *inToken, "(") )
+                OKGoNextTokenSkippingComments( inToken );
+            
             if( !OKIsOperator( *inToken, ")") )
                 OKGoNextTokenSkippingComments( inToken );
             else
