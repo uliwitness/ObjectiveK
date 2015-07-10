@@ -8,6 +8,7 @@
 
 #include "OKParser.h"
 #include "OKTokenizer.h"
+#include <memory.h>
 
 
 void    OKAppendStringLiteralToStringBufferAndEscapeIt( struct OKStringBuffer * buf, const char* str )
@@ -72,7 +73,13 @@ void    OKParseOneExpression( struct OKToken ** inToken, const char* operatorToE
     const char*     floatContent = OKGetFloatLiteral(*inToken);
     if( strContent )
     {
-        OKAppendStringLiteralToStringBufferAndEscapeIt( &context->sourceString, strContent );
+        char        constantName[1024] = {0};
+        snprintf(constantName, sizeof(constantName)-1, "kString___%zu", ++context->constantsIDSeed );
+        OKStringBufferAppendFmt( &context->constantsString, "struct string %s = { (struct object_isa*) &string___isa, %zu, ", constantName, strlen(strContent) );
+        OKAppendStringLiteralToStringBufferAndEscapeIt( &context->constantsString, strContent );
+        OKStringBufferAppend( &context->constantsString, " };\n" );
+        OKStringBufferAppend( &context->sourceString, "&" );
+        OKStringBufferAppend( &context->sourceString, constantName );
         OKGoNextTokenSkippingComments(inToken);
     }
     else if( intContent )

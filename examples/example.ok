@@ -7,8 +7,11 @@
 //
 
 class program
+    function showtext()
+        return( 0 )
     main function startUp()
-        printf( "Hello World!\n" )
+        string___print( "Hello World!\n" )
+        showtext()
         //showtext( "And Greetings, Programs!\n" )
         return( 0 )
 
