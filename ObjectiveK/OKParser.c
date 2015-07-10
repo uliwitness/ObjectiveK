@@ -198,14 +198,9 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                 return;
             }
             
+            struct OKStringBuffer paramListString = {0};
             char    internalName[1024] = {0};
             snprintf( internalName, sizeof(internalName) -1, "%s___%s", context->className, funcName );
-            if( !OKMapAddEntry( classMethods, funcName, internalName ) )
-            {
-                fprintf( stderr, "error:%d: Out of memory trying to add main method entry for '%s' in class '%s'.\n", (*inToken)->lineNumber, funcName, context->className );
-                *inToken = NULL;
-                return;
-            }
             
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
@@ -240,7 +235,9 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             OKStringBufferAppendFmt( &context->sourceString, "int    %s( struct %s* this", internalName, context->className );
+            OKStringBufferAppendFmt( &paramListString, "struct %s* this", context->className );
             OKGoNextTokenSkippingComments( inToken );
+            
             while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
             {
                 OKGoNextTokenSkippingComments( inToken );
@@ -263,14 +260,24 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                     if( !context->suppressLineDirectives )
                         OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
                     OKStringBufferAppendFmt( &context->sourceString, ", struct %s * %s", typeName, paramName );
+                    OKStringBufferAppendFmt( &paramListString, ", struct %s * %s", typeName, paramName );
                     OKGoNextTokenSkippingComments( inToken );
                 }
                 else
                 {
                     OKStringBufferAppendFmt( &context->headerString, ", struct %s *", typeName );
                     OKStringBufferAppendFmt( &context->sourceString, ", struct %s *", typeName );
+                    OKStringBufferAppendFmt( &paramListString, ", struct %s *", typeName );
                 }
             }
+            if( !OKMapAddEntry( classMethods, funcName, paramListString.string ) )
+            {
+                fprintf( stderr, "error:%d: Out of memory trying to add main method entry for '%s' in class '%s'.\n", (*inToken)->lineNumber, funcName, context->className );
+                *inToken = NULL;
+                OKStringBufferFree( &paramListString );
+                return;
+            }
+            OKStringBufferFree( &paramListString );
             if( OKIsOperator( *inToken, ")") )
                 OKGoNextTokenSkippingComments( inToken );
             OKStringBufferAppendFmt( &context->headerString, " );\n");
@@ -307,14 +314,9 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             return;
         }
         
+        struct  OKStringBuffer  paramListString = {0};
         char    internalName[1024] = {0};
         snprintf( internalName, sizeof(internalName) -1, "%s___%s", context->className, funcName );
-        if( !OKMapAddEntry( classMethods, funcName, internalName ) )
-        {
-            fprintf( stderr, "error:%d: Out of memory trying to add method entry for '%s' in class '%s'.\n", (*inToken)->lineNumber, funcName, context->className );
-            *inToken = NULL;
-            return;
-        }
         
         OKGoNextTokenSkippingComments( inToken );   // Skip name.
         if( !OKIsOperator( *inToken, "(") )
@@ -334,6 +336,7 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
         if( !context->suppressLineDirectives )
             OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
         OKStringBufferAppendFmt( &context->sourceString, "int    %s( struct %s* this", internalName, context->className);
+        OKStringBufferAppendFmt( &paramListString, "struct %s* this", context->className);
         if( !context->suppressLineDirectives )
             OKStringBufferAppendFmt( &context->currentVTableSourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
         OKStringBufferAppendFmt( &context->currentVTableSourceString, "\t%s,\n", internalName );
@@ -362,6 +365,7 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                 OKStringBufferAppendFmt( &context->headerString, ", struct %s * %s", typeName, paramName );
                 OKStringBufferAppendFmt( &context->sourceString, ", struct %s * %s", typeName, paramName );
                 OKStringBufferAppendFmt( &context->currentVTableHeaderString, ", struct %s * %s", typeName, paramName );
+                OKStringBufferAppendFmt( &paramListString, ", struct %s * %s", typeName, paramName );
                 OKGoNextTokenSkippingComments( inToken );
             }
             else
@@ -369,11 +373,21 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                 OKStringBufferAppendFmt( &context->headerString, ", struct %s *", typeName );
                 OKStringBufferAppendFmt( &context->sourceString, ", struct %s *", typeName );
                 OKStringBufferAppendFmt( &context->currentVTableHeaderString, ", struct %s *", typeName );
+                OKStringBufferAppendFmt( &paramListString, ", struct %s *", typeName );
             }
         }
         OKStringBufferAppendFmt( &context->headerString, " );\n");
         OKStringBufferAppendFmt( &context->sourceString, " )\n{\n");
         OKStringBufferAppend( &context->currentVTableHeaderString, " );\n" );
+        
+        if( !OKMapAddEntry( classMethods, funcName, paramListString.string ) )
+        {
+            fprintf( stderr, "error:%d: Out of memory trying to add main method entry for '%s' in class '%s'.\n", (*inToken)->lineNumber, funcName, context->className );
+            *inToken = NULL;
+            OKStringBufferFree( &paramListString );
+            return;
+        }
+        OKStringBufferFree( &paramListString );
 
         if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
         {
