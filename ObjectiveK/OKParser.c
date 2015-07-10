@@ -325,7 +325,12 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
                 superclassName = OKGetIdentifier(*inToken);
             }
             
-            OKMapAddEntry( context->classes, className, OKMallocStringToStringMap() );
+            if( !OKMapAddEntry( context->classes, className, OKMallocStringToStringMap() ) )
+            {
+                fprintf( stderr, "error:%d: Out of memory trying to add entry for class '%s'.\n", (*inToken)->lineNumber, className );
+                *inToken = NULL;
+                return;
+            }
             
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
