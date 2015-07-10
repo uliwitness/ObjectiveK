@@ -9,6 +9,9 @@ Design goals for ObjectiveK
 3. Avoid the complexity of C++ and Swift
 4. Use indentation to indicate nesting, instead of possibly misleading brackets
 5. Be as lightweight and portable as C, by sitting on top of C
+6. Provide a safer mechanism for generating the code that implements the
+   variadic types in the Leonie runtime, by allowing to change an object's
+   class in-place. 
 
 
 Syntax
