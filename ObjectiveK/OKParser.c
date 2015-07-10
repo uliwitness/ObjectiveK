@@ -499,7 +499,7 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             }
             OKGoNextTokenSkippingComments( inToken );
             
-            struct OKMap*   classMethods = OKMapFindEntry( context->classes, className );
+            struct OKMap*   classMethods = OKMapFindEntry( context->classes, superclassName );
             if( !classMethods )
             {
                 fprintf( stderr, "error:%d: Unknown class '%s' to extend with '%s'.\n", (*inToken)->lineNumber, superclassName, className );
