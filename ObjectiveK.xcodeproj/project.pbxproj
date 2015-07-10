@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		550582AD1B4FCE610035A51C /* OKArray.c in Sources */ = {isa = PBXBuildFile; fileRef = 550582AB1B4FCE610035A51C /* OKArray.c */; };
 		55452B9C19FE1DFF00A87C59 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452B9B19FE1DFF00A87C59 /* main.c */; };
 		55452BA51A00B76200A87C59 /* OKToken.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BA31A00B76200A87C59 /* OKToken.c */; };
 		55452BA81A00BE2500A87C59 /* OKTokenizer.c in Sources */ = {isa = PBXBuildFile; fileRef = 55452BA61A00BE2500A87C59 /* OKTokenizer.c */; };
@@ -39,6 +40,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		550582AB1B4FCE610035A51C /* OKArray.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = OKArray.c; sourceTree = "<group>"; };
+		550582AC1B4FCE610035A51C /* OKArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OKArray.h; sourceTree = "<group>"; };
 		55452B9819FE1DFF00A87C59 /* objk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = objk; sourceTree = BUILT_PRODUCTS_DIR; };
 		55452B9B19FE1DFF00A87C59 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		55452BA219FE238C00A87C59 /* example.ok */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = example.ok; path = examples/example.ok; sourceTree = SOURCE_ROOT; };
@@ -110,6 +113,8 @@
 				55452BBD1A01A2A500A87C59 /* OKStringBuffer.c */,
 				55861EBF1B4F2382004620C6 /* OKMap.h */,
 				55861EBE1B4F2382004620C6 /* OKMap.c */,
+				550582AC1B4FCE610035A51C /* OKArray.h */,
+				550582AB1B4FCE610035A51C /* OKArray.c */,
 			);
 			path = ObjectiveK;
 			sourceTree = "<group>";
@@ -204,6 +209,7 @@
 			files = (
 				55861EC01B4F2382004620C6 /* OKMap.c in Sources */,
 				55452B9C19FE1DFF00A87C59 /* main.c in Sources */,
+				550582AD1B4FCE610035A51C /* OKArray.c in Sources */,
 				55452BA51A00B76200A87C59 /* OKToken.c in Sources */,
 				55452BBF1A01A2A500A87C59 /* OKStringBuffer.c in Sources */,
 				55452BAB1A00C03F00A87C59 /* OKParser.c in Sources */,
