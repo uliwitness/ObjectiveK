@@ -14,8 +14,8 @@ struct program
 };
 
 #line 10 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
-int    program___showtext( struct program* this );
-#line 12 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
+int    program___showtext( struct program* this, struct string * inText );
+#line 13 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 int    program___startUp( struct program* this );
 #line 9 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 struct program_isa
@@ -23,8 +23,8 @@ struct program_isa
 #line 9 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 	struct object_isa	super;
 #line 10 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
-	int (*showtext)( struct program * this );
-#line 12 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
+	int (*showtext)( struct program * this, struct string * inText );
+#line 13 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 	int (*startUp)( struct program * this );
 };
 

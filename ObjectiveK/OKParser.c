@@ -71,6 +71,7 @@ void    OKParseOneExpression( struct OKToken ** inToken, const char* operatorToE
     const char*     strContent = OKGetStringLiteral(*inToken);
     const char*     intContent = OKGetIntegerLiteral(*inToken);
     const char*     floatContent = OKGetFloatLiteral(*inToken);
+    const char*     identContent = OKGetIdentifier(*inToken);
     if( strContent )
     {
         char        constantName[1024] = {0};
@@ -90,6 +91,11 @@ void    OKParseOneExpression( struct OKToken ** inToken, const char* operatorToE
     else if( floatContent )
     {
         OKStringBufferAppend( &context->sourceString, floatContent );
+        OKGoNextTokenSkippingComments(inToken);
+    }
+    else if( identContent )
+    {
+        OKStringBufferAppend( &context->sourceString, identContent );
         OKGoNextTokenSkippingComments(inToken);
     }
     else
@@ -320,10 +326,7 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
         
         if( !context->suppressLineDirectives )
             OKStringBufferAppendFmt( &context->currentVTableHeaderString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-        OKStringBufferAppendFmt( &context->currentVTableHeaderString, "\tint (*%s)( struct %s * this );\n", funcName, context->className );
-        if( !context->suppressLineDirectives )
-            OKStringBufferAppendFmt( &context->currentVTableSourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-        OKStringBufferAppendFmt( &context->currentVTableSourceString, "\t%s,\n", internalName );
+        OKStringBufferAppendFmt( &context->currentVTableHeaderString, "\tint (*%s)( struct %s * this", funcName, context->className );
         
         if( !context->suppressLineDirectives )
             OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
@@ -331,37 +334,47 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
         if( !context->suppressLineDirectives )
             OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
         OKStringBufferAppendFmt( &context->sourceString, "int    %s( struct %s* this", internalName, context->className);
+        if( !context->suppressLineDirectives )
+            OKStringBufferAppendFmt( &context->currentVTableSourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+        OKStringBufferAppendFmt( &context->currentVTableSourceString, "\t%s,\n", internalName );
         
         while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
         {
             if( OKIsOperator( *inToken, "(") )
                 OKGoNextTokenSkippingComments( inToken );
             
-            if( !OKIsOperator( *inToken, ")") )
-                OKGoNextTokenSkippingComments( inToken );
-            else
+            if( OKIsOperator( *inToken, ")") )
             {
                 OKGoNextTokenSkippingComments( inToken );
                 break;
             }
+            else if( OKIsOperator( *inToken, ",") )
+            {
+                OKGoNextTokenSkippingComments( inToken );
+            }
+
             const char* typeName = OKGetIdentifier(*inToken);
             const char* paramName = NULL;
             OKGoNextTokenSkippingComments( inToken );
             if( !OKIsOperator( *inToken, ",") && !OKIsOperator( *inToken, ")") )
             {
                 paramName = OKGetIdentifier(*inToken);
-                OKStringBufferAppendFmt( &context->headerString, ", %s %s", typeName, paramName );
-                OKStringBufferAppendFmt( &context->sourceString, ", %s %s", typeName, paramName );
+                OKStringBufferAppendFmt( &context->headerString, ", struct %s * %s", typeName, paramName );
+                OKStringBufferAppendFmt( &context->sourceString, ", struct %s * %s", typeName, paramName );
+                OKStringBufferAppendFmt( &context->currentVTableHeaderString, ", struct %s * %s", typeName, paramName );
                 OKGoNextTokenSkippingComments( inToken );
             }
             else
             {
-                OKStringBufferAppendFmt( &context->headerString, ", %s", typeName );
-                OKStringBufferAppendFmt( &context->sourceString, ", %s", typeName );
+                OKStringBufferAppendFmt( &context->headerString, ", struct %s *", typeName );
+                OKStringBufferAppendFmt( &context->sourceString, ", struct %s *", typeName );
+                OKStringBufferAppendFmt( &context->currentVTableHeaderString, ", struct %s *", typeName );
             }
         }
         OKStringBufferAppendFmt( &context->headerString, " );\n");
         OKStringBufferAppendFmt( &context->sourceString, " )\n{\n");
+        OKStringBufferAppend( &context->currentVTableHeaderString, " );\n" );
+
         if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
         {
             OKGoNextTokenSkippingComments(inToken);

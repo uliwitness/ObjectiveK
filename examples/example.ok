@@ -7,12 +7,12 @@
 //
 
 class program
-    function showtext()
+    function showtext( string inText )
+        string___print( inText )
         return( 0 )
     main function startUp()
         string___print( "Hello World!\n" )
-        showtext()
-        //showtext( "And Greetings, Programs!\n" )
+        showtext( "And Greetings, Programs!\n" )
         return( 0 )
 
 //extension textShowing : program
