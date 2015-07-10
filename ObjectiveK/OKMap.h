@@ -28,8 +28,8 @@ struct OKMapEntry
 struct OKMap
 {
     size_t              count;
-    void                (*freeValue)( void* inValue );
-    void*               (*copyValue)( void* inValue );
+    void                (*freeValue)( void* inValue );  // Set top NULL to not free values.
+    void*               (*copyValue)( void* inValue );  // Set to NULL to assign values w/o copying.
     struct OKMapEntry * entries;
 };
 

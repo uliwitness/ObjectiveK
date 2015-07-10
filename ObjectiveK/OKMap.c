@@ -20,12 +20,6 @@ void*   OKMapCopyStringValue( void* inOriginal )
 }
 
 
-void*   OKMapAssignMapValue( void* inOriginal )
-{
-    return inOriginal;
-}
-
-
 struct OKMap*   OKMallocStringToStringMap()
 {
     struct OKMap*   theMap = malloc( sizeof(struct OKMap) );
@@ -47,7 +41,7 @@ struct OKMap*   OKMallocStringToMapMap()
     {
         theMap->count = 0;
         theMap->entries = NULL;
-        theMap->copyValue = OKMapAssignMapValue;
+        theMap->copyValue = NULL;   // Don't copy, just take over the pointer.
         theMap->freeValue = (void (*)(void*)) OKMapFree;
     }
     return theMap;
@@ -86,7 +80,10 @@ bool    OKMapAddEntry( struct OKMap * inMap, const char* key, void* value )
     }
 
     inMap->entries[inMap->count-1].key = keyCopy;
-    inMap->entries[inMap->count-1].value = inMap->copyValue( value );
+    if( inMap->copyValue == NULL )
+        inMap->entries[inMap->count-1].value = value;
+    else
+        inMap->entries[inMap->count-1].value = inMap->copyValue( value );
 
     return true;
 }
@@ -110,7 +107,8 @@ void    OKMapFree( struct OKMap * inMap )
     for( size_t x = 0; x < inMap->count; x++ )
     {
         free( inMap->entries[x].key );
-        inMap->freeValue( inMap->entries[x].value );
+        if( inMap->freeValue )
+            inMap->freeValue( inMap->entries[x].value );
     }
     free( inMap );
 }
