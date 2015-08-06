@@ -16,6 +16,7 @@ class program
     main function startUp()
         string___print( "Hello World!\n" )
         showtext( "And Greetings, Programs!\n" )
+        this.showtext( "We can call methods on ourselves!\n" )
         return( 0 )
 
 //extension textShowing : program
