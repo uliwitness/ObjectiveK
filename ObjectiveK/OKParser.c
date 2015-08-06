@@ -78,7 +78,7 @@ void    OKParseOneExpression( struct OKToken ** inToken, const char* operatorToE
         snprintf(constantName, sizeof(constantName)-1, "kString___%zu", ++context->constantsIDSeed );
         OKStringBufferAppendFmt( &context->constantsString, "struct string %s = { (struct object_isa*) &string___isa, %zu, ", constantName, strlen(strContent) );
         OKAppendStringLiteralToStringBufferAndEscapeIt( &context->constantsString, strContent );
-        OKStringBufferAppend( &context->constantsString, " };\n" );
+        OKStringBufferAppend( &context->constantsString, ", false };\n" );
         OKStringBufferAppend( &context->sourceString, "&" );
         OKStringBufferAppend( &context->sourceString, constantName );
         OKGoNextTokenSkippingComments(inToken);
@@ -109,12 +109,66 @@ void    OKParseOneExpression( struct OKToken ** inToken, const char* operatorToE
 
 void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext* context )
 {
+    OKStringBufferAppendFmt( &context->sourceString, "\tint\t__returnValue = 0;\n" );
+    
     while( (*inToken) && (*inToken)->indentLevel == 8 )
     {
         const char*     funcName = OKGetIdentifier(*inToken);
-        if( funcName )  // Had an identifier here?
+        if( funcName && strcmp( funcName, "var" ) == 0 )
         {
+            if( !context->suppressLineDirectives )
+                OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             OKGoNextTokenSkippingComments(inToken);
+            const char*     varType = OKGetIdentifier(*inToken);
+            if( !varType )
+            {
+                fprintf( stderr, "error:%d: Expected identifier with variable type after 'var'.\n", (*inToken)->lineNumber );
+                *inToken = NULL;
+                return;
+            }
+            OKGoNextTokenSkippingComments(inToken);
+            const char*     varName = OKGetIdentifier(*inToken);
+            if( varName )
+            {
+                char    varTypeWithRef[256] = {0};
+                strncpy(varTypeWithRef +1,varType,sizeof(varTypeWithRef)-2);
+                varTypeWithRef[0] = '*';
+                OKMapAddEntry( context->currentLocalVars, varName, (void*)varTypeWithRef );
+                
+                OKStringBufferAppendFmt( &context->sourceString, "\tstruct %s   %s = {(struct object_isa*)&%s___isa};\n", varType, varName, varType );
+                OKStringBufferAppendFmt( &context->sourceString, "\t((struct object*)&%s)->isa->init( (struct object*)&%s );\n", varName, varName );
+                
+                OKGoNextTokenSkippingComments(inToken);
+            }
+            else
+            {
+                fprintf( stderr, "error:%d: Expected identifier with variable name after 'var %s'.\n", (*inToken)->lineNumber, varType );
+                *inToken = NULL;
+                return;
+            }
+        }
+        else if( funcName )  // Had an identifier here?
+        {
+            const char*     objectVariable = NULL;
+            
+            OKGoNextTokenSkippingComments(inToken);
+            
+            if( OKIsOperator( *inToken, ".") )  // Method call!
+            {
+                objectVariable = funcName;
+                
+                OKGoNextTokenSkippingComments(inToken);
+                funcName = OKGetIdentifier(*inToken);
+                
+                if( !funcName )
+                {
+                    fprintf( stderr, "error:%d: Expected a function name after a '.' operator.\n", (*inToken)->lineNumber );
+                    *inToken = NULL;
+                    return;
+                }
+                OKGoNextTokenSkippingComments(inToken);
+            }
+            
             if( OKIsOperator( *inToken, "(") )  // Function call!
             {
                 struct OKMap*   classMethods = OKMapFindEntry( context->classes, context->className );
@@ -128,17 +182,45 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
                 if( !context->suppressLineDirectives )
                     OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
                 char*   methodName = OKMapFindEntry( classMethods, funcName );
-                if( methodName )    // Unqualified virtual method of ourselves!
+                if( funcName && objectVariable )
+                {
+                    const char* varTypeWithRef = (const char*) OKMapFindEntry( context->currentLocalVars, objectVariable );
+                    bool        isLocal = varTypeWithRef[0] == '*';
+                    const char* varType = isLocal ? (varTypeWithRef +1) : varTypeWithRef;
+                    
+                    OKStringBufferAppendFmt( &context->sourceString, "\t((struct %s_isa*)((struct object*)%s%s)->isa)->%s( %s%s", varType, isLocal?"&":"", objectVariable, funcName, isLocal?"&":"", objectVariable );
+                }
+                else if( methodName )    // Unqualified virtual method of ourselves!
                 {
                     OKStringBufferAppendFmt( &context->sourceString, "\t((struct %s_isa*)((struct object*)this)->isa)->%s( this", context->className, funcName );
+                }
+                else if( strcmp(funcName,"return") == 0 )
+                {
+                    OKStringBufferAppend( &context->sourceString, "\t__returnValue = " );
+                    OKGoNextTokenSkippingComments(inToken);
+                    OKParseOneExpression( inToken, ")", context );
+                    OKStringBufferAppend( &context->sourceString, ";\n\tgoto cleanup;\n" );
+                    if( !OKIsOperator( *inToken, ")") )
+                    {
+                        fprintf( stderr, "error:%d: Expected ')' here, found '%s'.\n", (*inToken)->lineNumber, (*inToken) ? (*inToken)->string : "end of file" );
+                        *inToken = NULL;
+                        return;
+                    }
+                    OKGoNextTokenSkippingComments(inToken);
+                    continue;
                 }
                 else    // Some standalone function or language construct.
                     OKStringBufferAppendFmt( &context->sourceString, "\t%s( ", funcName );
                 
-                bool    needsComma = (methodName != NULL);
+                bool    needsComma = (methodName != NULL || (objectVariable != NULL && funcName != NULL));
                 OKGoNextTokenSkippingComments(inToken);
                 while( *inToken )
                 {
+                    if( OKIsOperator( *inToken, ")") )
+                    {
+                        break;
+                    }
+
                     if( needsComma )
                         OKStringBufferAppend( &context->sourceString, ", " );
                     OKParseOneExpression( inToken, ",", context );
@@ -167,6 +249,12 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
                 OKGoNextTokenSkippingComments(inToken);
                 OKStringBufferAppend( &context->sourceString, " );\n" );
             }
+            else
+            {
+                fprintf( stderr, "error:%d: Unknown statement starting with '%s'.\n", (*inToken)->lineNumber, (*inToken) ? (*inToken)->string : "end of file" );
+                *inToken = NULL;
+                return;
+            }
         }
         else if( OKIsLineBreak( *inToken ) )
             OKGoNextTokenSkippingComments(inToken);
@@ -177,6 +265,16 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
             return;
         }
     }
+    
+    OKStringBufferAppendFmt( &context->sourceString, "cleanup:\n" );
+    for( size_t x = 0; x < context->currentLocalVars->count; x++ )
+    {
+        const char* varTypeWithRef = context->currentLocalVars->entries[x].value;
+        bool        isLocal = varTypeWithRef[0] == '*';
+        
+        OKStringBufferAppendFmt( &context->sourceString, "\t((struct object*)%s%s)->isa->dealloc( (struct object*)%s%s );\n", isLocal?"&":"", context->currentLocalVars->entries[x].key, isLocal?"&":"", context->currentLocalVars->entries[x].key );
+    }
+    OKStringBufferAppendFmt( &context->sourceString, "\treturn __returnValue;\n" );
 }
 
 
@@ -249,6 +347,9 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             OKStringBufferAppendFmt( &context->sourceString, "int    %s( struct %s* this", internalName, context->className );
             OKStringBufferAppendFmt( &paramListString, "struct %s* this", context->className );
             OKGoNextTokenSkippingComments( inToken );
+
+            context->currentLocalVars = OKMallocStringToStringMap();
+            OKMapAddEntry( context->currentLocalVars, "this", (void*)context->className );
             
             while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") )
             {
@@ -274,6 +375,8 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                     OKStringBufferAppendFmt( &context->sourceString, ", struct %s * %s", typeName, paramName );
                     OKStringBufferAppendFmt( &paramListString, ", struct %s * %s", typeName, paramName );
                     OKGoNextTokenSkippingComments( inToken );
+                    
+                    OKMapAddEntry( context->currentLocalVars, paramName, (void*)typeName );
                 }
                 else
                 {
@@ -300,6 +403,8 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             }
             OKParseOneFunctionBody( inToken, context );
             OKStringBufferAppendFmt( &context->sourceString, "}\n\n");
+            OKMapFree( context->currentLocalVars );
+            context->currentLocalVars = NULL;
             
             if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
             {
@@ -353,6 +458,9 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             OKStringBufferAppendFmt( &context->currentVTableSourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
         OKStringBufferAppendFmt( &context->currentVTableSourceString, "\t%s,\n", internalName );
         
+        context->currentLocalVars = OKMallocStringToStringMap();
+        OKMapAddEntry( context->currentLocalVars, "this", (void*)context->className );
+            
         while( OKIsOperator( *inToken, "(") || OKIsOperator( *inToken, ",") || OKIsOperator( *inToken, ")") )
         {
             if( OKIsOperator( *inToken, "(") )
@@ -379,6 +487,8 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
                 OKStringBufferAppendFmt( &context->currentVTableHeaderString, ", struct %s * %s", typeName, paramName );
                 OKStringBufferAppendFmt( &paramListString, ", struct %s * %s", typeName, paramName );
                 OKGoNextTokenSkippingComments( inToken );
+
+                OKMapAddEntry( context->currentLocalVars, paramName, (void*)typeName );
             }
             else
             {
@@ -407,7 +517,9 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
         }
         OKParseOneFunctionBody( inToken, context );
         OKStringBufferAppendFmt( &context->sourceString, "}\n\n");
-        
+        OKMapFree( context->currentLocalVars );
+        context->currentLocalVars = NULL;
+
         if( (*inToken) && (*inToken)->tokenType == OKTokenMode_LineBreak )
         {
             OKGoNextTokenSkippingComments(inToken);

@@ -53,7 +53,8 @@ int main( int argc, const char * argv[] )
     FILE*   objectHeaderFile = fopen( objectHeaderFilePath, "w");
     fprintf( objectHeaderFile, "//\n//  Header auto-generated from %s\n", argv[1] );
     fprintf( objectHeaderFile, "//  using the objk command line tool. Do not modify, modify the original source file.\n//\n\n" );
-    fprintf( objectHeaderFile, "#include <stdlib.h>\n\n" );
+    fprintf( objectHeaderFile, "#include <stdlib.h>\n" );
+    fprintf( objectHeaderFile, "#include <stdbool.h>\n\n" );
     fprintf( objectHeaderFile, "struct object\n{\n" );
     fprintf( objectHeaderFile, "\tstruct object_isa*    isa;\n" );
     fprintf( objectHeaderFile, "};\n\n" );
@@ -68,13 +69,15 @@ int main( int argc, const char * argv[] )
      fprintf( objectHeaderFile, "// vtable for plain objects:\n" );
     fprintf( objectHeaderFile, "extern struct object_isa\tobject___isa;\n\n" );
     fprintf( objectHeaderFile, "// built-in string class:\n" );
-    fprintf( objectHeaderFile, "struct string\n{\n\tstruct object\t\tsuper;\n\tsize_t\t\t\t\tstringLength;\n\tconst char*\t\t\tstringBuffer;\n};\n\n" );
+    fprintf( objectHeaderFile, "struct string\n{\n\tstruct object\t\tsuper;\n\tsize_t\t\t\t\tstringLength;\n\tconst char*\t\t\tstringBuffer;\n\tbool\t\t\t\tisMutable;\n};\n\n" );
     fprintf( objectHeaderFile, "struct string_isa\n{\n" );
     fprintf( objectHeaderFile, "\tstruct object_isa super;\n" );
     fprintf( objectHeaderFile, "\tvoid\t(*print)( struct string* this );\n" );
+    fprintf( objectHeaderFile, "\tvoid\t(*append)( struct string* this, struct string* other );\n" );
     fprintf( objectHeaderFile, "};\n\n" );
     fprintf( objectHeaderFile, "extern void string___print( struct string* inText );\n" );
-    fprintf( objectHeaderFile, "extern void  string___init_isa( void );\n\n" );
+    fprintf( objectHeaderFile, "extern void string___append( struct string* this, struct string* other );\n" );
+    fprintf( objectHeaderFile, "extern void string___init_isa( void );\n\n" );
     fprintf( objectHeaderFile, "extern struct string_isa\tstring___isa;\n\n" );
     fclose( objectHeaderFile );
 
@@ -89,6 +92,7 @@ int main( int argc, const char * argv[] )
     fprintf( objectFile, "#include \"ok_object.h\"\n" );
     fprintf( objectFile, "#include <stdio.h>\n" );
     fprintf( objectFile, "#include <stdarg.h>\n\n" );
+    fprintf( objectFile, "#include <memory.h>\n\n" );
     fprintf( objectFile, "struct object_isa     object___isa =\n{\n" );
     fprintf( objectFile, "\tobject___init,\n" );
     fprintf( objectFile, "\tobject___dealloc\n" );
@@ -104,12 +108,26 @@ int main( int argc, const char * argv[] )
     fprintf( objectFile, "}\n\n" );
     fprintf( objectFile, "struct string_isa     string___isa =\n{\n" );
     fprintf( objectFile, "\t{0}, // set by string___init_isa().\n" );
-    fprintf( objectFile, "\tstring___print\n" );
+    fprintf( objectFile, "\tstring___print,\n" );
+    fprintf( objectFile, "\tstring___append\n" );
     fprintf( objectFile, "};\n\n" );
+    fprintf( objectFile, "void  string___init( struct string* this )\n{\n" );
+    fprintf( objectFile, "\tthis->stringLength = 0;\n" );
+    fprintf( objectFile, "\tthis->stringBuffer = \"\";\n" );
+    fprintf( objectFile, "\tthis->isMutable = false;\n" );
+    fprintf( objectFile, "}\n\n" );
+    fprintf( objectFile, "void  string___dealloc( struct string* this )\n{\n" );
+    fprintf( objectFile, "\tif( this->isMutable )\n\t\tfree(this->stringBuffer);\n" );
+    fprintf( objectFile, "}\n" );
     fprintf( objectFile, "void  string___init_isa( void )\n{\n" );
     fprintf( objectFile, "\tstring___isa.super = object___isa;\n" );
+    fprintf( objectFile, "\tstring___isa.super.init = (void(*)(struct object*))string___init;\n" );
+    fprintf( objectFile, "\tstring___isa.super.dealloc = (void(*)(struct object*))string___dealloc;\n" );
     fprintf( objectFile, "}\n\n" );
     fprintf( objectFile, "void string___print( struct string* inText )\n{\n\tprintf(\"%%s\",inText->stringBuffer);\n}\n" );
+    fprintf( objectFile, "void string___append( struct string* this, struct string* other )\n{\n" );
+    fprintf( objectFile, "\tchar* nuStr = malloc(this->stringLength +other->stringLength +1);\n\tmemcpy(nuStr, this->stringBuffer, this->stringLength);\n\tmemcpy(nuStr +this->stringLength, other->stringBuffer, other->stringLength +1);\n\tif( this->isMutable )\n\t\tfree(this->stringBuffer);\n\tthis->stringBuffer = nuStr;\n\tthis->stringLength += other->stringLength;\n\tthis->isMutable = true;\n" );
+    fprintf( objectFile, "}\n" );
     fclose( objectFile );
     
     printf("Generated file \"%s\".\n",objectFilePath);

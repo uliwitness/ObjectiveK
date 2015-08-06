@@ -4,6 +4,7 @@
 //
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 struct object
 {
@@ -31,16 +32,19 @@ struct string
 	struct object		super;
 	size_t				stringLength;
 	const char*			stringBuffer;
+	bool				isMutable;
 };
 
 struct string_isa
 {
 	struct object_isa super;
 	void	(*print)( struct string* this );
+	void	(*append)( struct string* this, struct string* other );
 };
 
 extern void string___print( struct string* inText );
-extern void  string___init_isa( void );
+extern void string___append( struct string* this, struct string* other );
+extern void string___init_isa( void );
 
 extern struct string_isa	string___isa;
 

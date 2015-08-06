@@ -8,7 +8,10 @@
 
 class program
     function showtext( string inText )
-        string___print( inText )
+        var string joe
+        joe.append( "Huh.\n" )
+        joe.print()
+        inText.print()
         return( 0 )
     main function startUp()
         string___print( "Hello World!\n" )
