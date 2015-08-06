@@ -272,7 +272,10 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
         const char* varTypeWithRef = context->currentLocalVars->entries[x].value;
         bool        isLocal = varTypeWithRef[0] == '*';
         
-        OKStringBufferAppendFmt( &context->sourceString, "\t((struct object*)%s%s)->isa->dealloc( (struct object*)%s%s );\n", isLocal?"&":"", context->currentLocalVars->entries[x].key, isLocal?"&":"", context->currentLocalVars->entries[x].key );
+        if( isLocal )
+        {
+            OKStringBufferAppendFmt( &context->sourceString, "\t((struct object*)%s%s)->isa->dealloc( (struct object*)%s%s );\n", isLocal?"&":"", context->currentLocalVars->entries[x].key, isLocal?"&":"", context->currentLocalVars->entries[x].key );
+        }
     }
     OKStringBufferAppendFmt( &context->sourceString, "\treturn __returnValue;\n" );
 }
@@ -591,16 +594,17 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             {
                 OKParseOneClassLevelConstruct( inToken, context );
                 if( !(*inToken) )
-                    return;
+                    break;
             }
             OKStringBufferAppendFmt( &context->currentVTableHeaderString, "};\n\n" );
             if( !context->suppressLineDirectives )
-                OKStringBufferAppendFmt( &context->currentVTableHeaderString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+                OKStringBufferAppendFmt( &context->currentVTableHeaderString, "#line %d \"%s\"\n", (*inToken)?(*inToken)->lineNumber:0, context->fileName );
             OKStringBufferAppendFmt( &context->currentVTableHeaderString, "extern struct %s_isa   %s___isa;\n", className, className );
             if( !context->suppressLineDirectives )
-                OKStringBufferAppendFmt( &context->currentVTableHeaderString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
+                OKStringBufferAppendFmt( &context->currentVTableHeaderString, "#line %d \"%s\"\n", (*inToken)?(*inToken)->lineNumber:0, context->fileName );
             OKStringBufferAppendFmt( &context->currentVTableHeaderString, "void %s___init_isa( void );\n\n", className );
             OKStringBufferAppend( &context->headerString, context->currentVTableHeaderString.string );
+            //printf("\n%s\n",context->headerString.string );
             OKStringBufferFree( &context->currentVTableHeaderString );
             
             OKStringBufferAppendFmt( &context->currentVTableSourceString, "};\n\n" );
@@ -655,7 +659,7 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             {
                 OKParseOneClassLevelConstruct( inToken, context );
                 if( !(*inToken) )
-                    return;
+                    break;
             }
         }
     }
