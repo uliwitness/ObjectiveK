@@ -34,6 +34,20 @@ struct OKMap*   OKMallocStringToStringMap()
 }
 
 
+struct OKMap*   OKMallocStringToRawPtrMap()
+{
+    struct OKMap*   theMap = malloc( sizeof(struct OKMap) );
+    if( theMap )
+    {
+        theMap->count = 0;
+        theMap->entries = NULL;
+        theMap->copyValue = NULL;
+        theMap->freeValue = NULL;
+    }
+    return theMap;
+}
+
+
 struct OKMap*   OKMallocStringToMapMap()
 {
     struct OKMap*   theMap = malloc( sizeof(struct OKMap) );

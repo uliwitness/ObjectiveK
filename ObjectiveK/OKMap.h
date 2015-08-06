@@ -35,6 +35,7 @@ struct OKMap
 
 
 struct OKMap*   OKMallocStringToStringMap();    // Copies both keys and values.
+struct OKMap*   OKMallocStringToRawPtrMap();    // Copies keys, doesn't do anything with values (good for ints etc.)
 struct OKMap*   OKMallocStringToMapMap();       // Copies keys, takes over ownership of values.
 
 bool    OKMapAddEntry( struct OKMap * inMap, const char* key, void* value );
