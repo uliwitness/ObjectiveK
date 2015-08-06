@@ -556,6 +556,7 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
             {
                 OKGoNextTokenSkippingComments( inToken );
                 superclassName = OKGetIdentifier(*inToken);
+                OKGoNextTokenSkippingComments( inToken );
             }
             
             if( !OKMapAddEntry( context->classes, className, OKMallocStringToStringMap() ) )

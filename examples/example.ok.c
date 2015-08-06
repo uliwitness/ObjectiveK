@@ -26,8 +26,6 @@ int    program___showtext( struct program* this, struct string * inText )
 	__returnValue = 0;
 	goto cleanup;
 cleanup:
-	((struct object*)this)->isa->dealloc( (struct object*)this );
-	((struct object*)inText)->isa->dealloc( (struct object*)inText );
 	((struct object*)&joe)->isa->dealloc( (struct object*)&joe );
 	return __returnValue;
 }
@@ -63,7 +61,6 @@ int    program___startUp( struct program* this )
 	__returnValue = 0;
 	goto cleanup;
 cleanup:
-	((struct object*)this)->isa->dealloc( (struct object*)this );
 	return __returnValue;
 }
 

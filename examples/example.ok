@@ -23,3 +23,7 @@ class program
 //    function showtext( string message )
 //        string___print( message )
 //        return( 0 )
+
+//class ulistring : string
+//    function playMusic()
+//        this.print()
