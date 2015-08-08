@@ -14,7 +14,7 @@ int    ulistring___playMusic( struct ulistring* this )
 {
 	int	__returnValue = 0;
 #line 11 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
-	((struct string_isa*)((struct object*)this)->isa)->print( this );
+	((struct string_isa*)((struct object*)this)->isa)->print( (struct string*) this );
 cleanup:
 	return __returnValue;
 }
@@ -40,13 +40,14 @@ int    program___showtext( struct program* this, struct string * inText )
 	int	__returnValue = 0;
 #line 15 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 	struct ulistring   joe = {(struct object_isa*)&ulistring___isa};
+	ulistring___init_isa();
 	((struct object*)&joe)->isa->init( (struct object*)&joe );
 #line 16 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
-	((struct string_isa*)((struct object*)&joe)->isa)->append( &joe, &kString___1 );
+	((struct string_isa*)((struct object*)&joe)->isa)->append( (struct string*) &joe, &kString___1 );
 #line 17 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
-	((struct ulistring_isa*)((struct object*)&joe)->isa)->playMusic( &joe );
+	((struct ulistring_isa*)((struct object*)&joe)->isa)->playMusic( (struct ulistring*) &joe );
 #line 18 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
-	((struct string_isa*)((struct object*)inText)->isa)->print( inText );
+	((struct string_isa*)((struct object*)inText)->isa)->print( (struct string*) inText );
 #line 19 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 	__returnValue = 0;
 	goto cleanup;
@@ -81,7 +82,7 @@ int    program___startUp( struct program* this )
 #line 23 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 	((struct program_isa*)((struct object*)this)->isa)->showtext( this, &kString___3 );
 #line 24 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
-	((struct program_isa*)((struct object*)this)->isa)->showtext( this, &kString___4 );
+	((struct program_isa*)((struct object*)this)->isa)->showtext( (struct program*) this, &kString___4 );
 #line 25 "/Users/uli/Programming/ObjectiveK/examples/example.ok"
 	__returnValue = 0;
 	goto cleanup;

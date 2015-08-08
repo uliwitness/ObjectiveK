@@ -56,7 +56,7 @@ extern void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParse
 
 
 /*! Called by the parser to generate code for initializing an already-allocated struct for an object. varName is the name of a variable containing a pointer to the object (pass something like "&varName" for a stack variable). */
-extern void    OKPrintInitCode( const char* varName, struct OKParseContext* context );
+extern void    OKPrintInitCode( const char* varName, const char* varType, struct OKParseContext* context );
 
 
 /*! Called by the parser to generate code for tearing down an already-initialized struct for an object before it is deallocated. varName is the name of a variable containing a pointer to the object (pass something like "&varName" for a stack variable). */

@@ -53,9 +53,9 @@ void    OKAppendStringLiteralToStringBufferAndEscapeIt( struct OKStringBuffer * 
 }
 
 
-void    OKPrintInitCode( const char* varName, struct OKParseContext* context )
+void    OKPrintInitCode( const char* varName, const char* varType, struct OKParseContext* context )
 {
-    OKStringBufferAppendFmt( &context->sourceString, "\t%s___init_isa();\n", context->className );
+    OKStringBufferAppendFmt( &context->sourceString, "\t%s___init_isa();\n", varType );
     OKStringBufferAppendFmt( &context->sourceString, "\t((struct object*)%s)->isa->init( (struct object*)%s );\n", varName, varName );
 }
 
@@ -153,10 +153,13 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
                 char    varTypeWithRef[256] = {0};
                 strncpy(varTypeWithRef +1,varType,sizeof(varTypeWithRef)-2);
                 varTypeWithRef[0] = '*';
+                char    varNameWithRef[256] = {0};
+                strncpy(varNameWithRef +1,varName,sizeof(varNameWithRef)-2);
+                varNameWithRef[0] = '&';
                 OKMapAddEntry( context->currentLocalVars, varName, (void*)varTypeWithRef );
                 
                 OKStringBufferAppendFmt( &context->sourceString, "\tstruct %s   %s = {(struct object_isa*)&%s___isa};\n", varType, varName, varType );
-                OKStringBufferAppendFmt( &context->sourceString, "\t((struct object*)&%s)->isa->init( (struct object*)&%s );\n", varName, varName );
+                OKPrintInitCode( varNameWithRef, varType, context );
                 
                 OKGoNextTokenSkippingComments(inToken);
             }
@@ -208,8 +211,14 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
                     bool            isLocal = varTypeWithRef[0] == '*';
                     const char*     varType = isLocal ? (varTypeWithRef +1) : varTypeWithRef;
                     const char*     methodClass = OKFindClassForMethodOfClass( funcName, varType, context );
+                    if( methodClass == NULL )
+                    {
+                        fprintf( stderr, "error:%d: No method '%s' found in class '%s' or its superclasses.\n", (*inToken)->lineNumber, funcName, varType );
+                        *inToken = NULL;
+                        return;
+                    }
                     
-                    OKStringBufferAppendFmt( &context->sourceString, "\t((struct %s_isa*)((struct object*)%s%s)->isa)->%s( %s%s", methodClass, isLocal?"&":"", objectVariable, funcName, isLocal?"&":"", objectVariable );
+                    OKStringBufferAppendFmt( &context->sourceString, "\t((struct %s_isa*)((struct object*)%s%s)->isa)->%s( (struct %s*) %s%s", methodClass, isLocal?"&":"", objectVariable, funcName, methodClass, isLocal?"&":"", objectVariable );
                 }
                 else if( methodName )    // Unqualified virtual method of ourselves!
                 {
@@ -347,7 +356,7 @@ void    OKParseOneClassLevelConstruct( struct OKToken ** inToken, struct OKParse
             OKStringBufferAppendFmt( &context->sourceString, "\tstruct %s this = {(struct object_isa*)&%s___isa};\n", context->className, context->className );
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
-            OKPrintInitCode( "&this", context );
+            OKPrintInitCode( "&this", context->className, context );
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->sourceString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
             OKStringBufferAppendFmt( &context->sourceString, "\tint result = ((struct %s_isa*) ((struct object*)&this)->isa)->%s( &this );\n", context->className, funcName );
