@@ -107,6 +107,26 @@ void    OKParseOneExpression( struct OKToken ** inToken, const char* operatorToE
 }
 
 
+const char* OKFindClassForMethodOfClass( const char* funcName, const char* leafClass, struct OKParseContext* context )
+{
+    const char* currClass = leafClass;
+    while( currClass != NULL )
+    {
+        struct OKMap*   objMethods = OKMapFindEntry( context->classes, currClass );
+        if( !objMethods )
+            return NULL;
+        
+        const char* funcSig = OKMapFindEntry( objMethods, funcName );
+        if( funcSig )
+            return currClass;
+        
+        currClass = (const char*) OKMapFindEntry( objMethods, ":superclass" );
+    }
+    
+    return NULL;
+}
+
+
 void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext* context )
 {
     OKStringBufferAppendFmt( &context->sourceString, "\tint\t__returnValue = 0;\n" );
@@ -184,11 +204,12 @@ void    OKParseOneFunctionBody( struct OKToken ** inToken, struct OKParseContext
                 char*   methodName = OKMapFindEntry( classMethods, funcName );
                 if( funcName && objectVariable )
                 {
-                    const char* varTypeWithRef = (const char*) OKMapFindEntry( context->currentLocalVars, objectVariable );
-                    bool        isLocal = varTypeWithRef[0] == '*';
-                    const char* varType = isLocal ? (varTypeWithRef +1) : varTypeWithRef;
+                    const char*     varTypeWithRef = (const char*) OKMapFindEntry( context->currentLocalVars, objectVariable );
+                    bool            isLocal = varTypeWithRef[0] == '*';
+                    const char*     varType = isLocal ? (varTypeWithRef +1) : varTypeWithRef;
+                    const char*     methodClass = OKFindClassForMethodOfClass( funcName, varType, context );
                     
-                    OKStringBufferAppendFmt( &context->sourceString, "\t((struct %s_isa*)((struct object*)%s%s)->isa)->%s( %s%s", varType, isLocal?"&":"", objectVariable, funcName, isLocal?"&":"", objectVariable );
+                    OKStringBufferAppendFmt( &context->sourceString, "\t((struct %s_isa*)((struct object*)%s%s)->isa)->%s( %s%s", methodClass, isLocal?"&":"", objectVariable, funcName, isLocal?"&":"", objectVariable );
                 }
                 else if( methodName )    // Unqualified virtual method of ourselves!
                 {
@@ -559,12 +580,15 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
                 OKGoNextTokenSkippingComments( inToken );
             }
             
-            if( !OKMapAddEntry( context->classes, className, OKMallocStringToStringMap() ) )
+            struct OKMap*   methods = OKMallocStringToStringMap();
+            if( !OKMapAddEntry( context->classes, className, methods ) )
             {
                 fprintf( stderr, "error:%d: Out of memory trying to add entry for class '%s'.\n", (*inToken)->lineNumber, className );
                 *inToken = NULL;
                 return;
             }
+            
+            OKMapAddEntry( methods, ":superclass", (void*)superclassName );
             
             if( !context->suppressLineDirectives )
                 OKStringBufferAppendFmt( &context->headerString, "#line %d \"%s\"\n", (*inToken)->lineNumber, context->fileName );
@@ -675,6 +699,15 @@ void    OKParseOneTopLevelConstruct( struct OKToken ** inToken, struct OKParseCo
 void    OKParseTokenList( struct OKToken * inToken, struct OKParseContext* context )
 {
     context->classes = OKMallocStringToMapMap();
+    struct OKMap*   objectMethods = OKMallocStringToStringMap();
+    OKMapAddEntry( objectMethods, "init", "struct object* this" );
+    OKMapAddEntry( objectMethods, "dealloc", "struct object* this" );
+    OKMapAddEntry( context->classes, "object", objectMethods );
+    struct OKMap*   stringMethods = OKMallocStringToStringMap();
+    OKMapAddEntry( stringMethods, ":superclass", "object" );
+    OKMapAddEntry( stringMethods, "print", "struct string* this" );
+    OKMapAddEntry( stringMethods, "append", "struct string* this, struct string* addThis" );
+    OKMapAddEntry( context->classes, "string", stringMethods );
     
     struct OKToken *    currToken = inToken;
     while( currToken )

@@ -6,13 +6,18 @@
 //  Copyright (c) 2014 Uli Kusterer. All rights reserved.
 //
 
+class ulistring : string
+    function playMusic()
+        this.print()
+
 class program
     function showtext( string inText )
-        var string joe
+        var ulistring joe
         joe.append( "Huh.\n" )
-        joe.print()
+        joe.playMusic()
         inText.print()
         return( 0 )
+        
     main function startUp()
         string___print( "Hello World!\n" )
         showtext( "And Greetings, Programs!\n" )
@@ -24,6 +29,3 @@ class program
 //        string___print( message )
 //        return( 0 )
 
-//class ulistring : string
-//    function playMusic()
-//        this.print()
