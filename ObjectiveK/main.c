@@ -117,7 +117,7 @@ int main( int argc, const char * argv[] )
     fprintf( objectFile, "\tthis->isMutable = false;\n" );
     fprintf( objectFile, "}\n\n" );
     fprintf( objectFile, "void  string___dealloc( struct string* this )\n{\n" );
-    fprintf( objectFile, "\tif( this->isMutable )\n\t\tfree(this->stringBuffer);\n" );
+    fprintf( objectFile, "\tif( this->isMutable )\n\t\tfree( (void*)this->stringBuffer);\n" );
     fprintf( objectFile, "}\n" );
     fprintf( objectFile, "void  string___init_isa( void )\n{\n" );
     fprintf( objectFile, "\tstring___isa.super = object___isa;\n" );

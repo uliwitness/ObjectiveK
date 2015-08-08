@@ -46,7 +46,7 @@ void  string___init( struct string* this )
 void  string___dealloc( struct string* this )
 {
 	if( this->isMutable )
-		free(this->stringBuffer);
+		free( (void*)this->stringBuffer);
 }
 void  string___init_isa( void )
 {
